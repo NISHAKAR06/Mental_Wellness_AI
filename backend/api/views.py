@@ -1,10 +1,11 @@
+from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
 import google.generativeai as genai
 
 # Configure the Gemini API key
-genai.configure(api_key="AIzaSyDPA8LNVGITrhhG5k6b7D5SiefFZ7R__kA")
+genai.configure(api_key=settings.GEMINI_API_KEY)
 
 @csrf_exempt
 def summarize_session(request):
