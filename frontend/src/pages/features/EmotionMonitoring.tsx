@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,13 +17,101 @@ import {
 
 export default function EmotionMonitoring() {
   const [isMonitoring, setIsMonitoring] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [emotions, setEmotions] = useState([
+    { name: 'Happy', value: 0, color: 'bg-green-500', icon: Smile },
+    { name: 'Neutral', value: 0, color: 'bg-yellow-500', icon: Meh },
+    { name: 'Anxious', value: 0, color: 'bg-orange-500', icon: Frown },
+    { name: 'Stressed', value: 0, color: 'bg-red-500', icon: Frown }
+  ]);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const intervalRef = useRef<NodeJS.Timeout>();
+  const ws = useRef<WebSocket | null>(null);
 
-  const emotions = [
-    { name: 'Happy', value: 75, color: 'bg-green-500', icon: Smile },
-    { name: 'Neutral', value: 15, color: 'bg-yellow-500', icon: Meh },
-    { name: 'Anxious', value: 8, color: 'bg-orange-500', icon: Frown },
-    { name: 'Stressed', value: 2, color: 'bg-red-500', icon: Frown }
-  ];
+  const startVideo = () => {
+    navigator.mediaDevices.getUserMedia({ video: {} })
+      .then((stream) => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          setError(null);
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        setError('Camera permission denied. Please allow camera access to use this feature.');
+        setIsMonitoring(false);
+      });
+  };
+
+  const stopVideo = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach((track) => track.stop());
+      videoRef.current.srcObject = null;
+    }
+  };
+
+  const handleToggleMonitoring = () => {
+    setIsMonitoring((prev) => {
+      if (!prev) {
+        startVideo();
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${wsProtocol}//${window.location.host}/ws/emotions/`;
+        ws.current = new WebSocket(wsUrl);
+        ws.current.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          if (data.emotions) {
+            const { happy, neutral, anxious, stressed } = data.emotions;
+            setEmotions([
+              { name: 'Happy', value: happy, color: 'bg-green-500', icon: Smile },
+              { name: 'Neutral', value: neutral, color: 'bg-yellow-500', icon: Meh },
+              { name: 'Anxious', value: anxious, color: 'bg-orange-500', icon: Frown },
+              { name: 'Stressed', value: stressed, color: 'bg-red-500', icon: Frown }
+            ]);
+          }
+        };
+      } else {
+        stopVideo();
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+        }
+        if (ws.current) {
+          ws.current.close();
+        }
+        setEmotions([
+          { name: 'Happy', value: 0, color: 'bg-green-500', icon: Smile },
+          { name: 'Neutral', value: 0, color: 'bg-yellow-500', icon: Meh },
+          { name: 'Anxious', value: 0, color: 'bg-orange-500', icon: Frown },
+          { name: 'Stressed', value: 0, color: 'bg-red-500', icon: Frown }
+        ]);
+      }
+      return !prev;
+    });
+  };
+
+  useEffect(() => {
+    if (isMonitoring && videoRef.current) {
+      intervalRef.current = setInterval(() => {
+        if (videoRef.current && ws.current && ws.current.readyState === WebSocket.OPEN) {
+          const canvas = document.createElement('canvas');
+          canvas.width = videoRef.current.videoWidth;
+          canvas.height = videoRef.current.videoHeight;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+            const dataUrl = canvas.toDataURL('image/jpeg');
+            ws.current.send(JSON.stringify({ image: dataUrl }));
+          }
+        }
+      }, 1000);
+    }
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [isMonitoring]);
 
   const vitalSigns = [
     { name: 'Heart Rate', value: '72 BPM', status: 'Normal', color: 'text-green-600' },
@@ -47,7 +135,7 @@ export default function EmotionMonitoring() {
           </p>
           <Button
             className={`mt-4 ${isMonitoring ? 'bg-destructive hover:bg-destructive/90' : 'btn-hero'}`}
-            onClick={() => setIsMonitoring(!isMonitoring)}
+            onClick={handleToggleMonitoring}
           >
             {isMonitoring ? (
               <>
@@ -80,16 +168,12 @@ export default function EmotionMonitoring() {
                 </CardHeader>
                 <CardContent>
                   <div className="relative aspect-video rounded-xl bg-gradient-to-br from-primary-soft to-accent overflow-hidden">
-                    <div className="flex h-full flex-col items-center justify-center">
-                      <Camera className="h-16 w-16 text-primary mb-4" />
-                      <p className="text-lg font-medium text-foreground mb-2">
-                        {isMonitoring ? 'Monitoring Active' : 'Ready to Monitor'}
-                      </p>
-                    </div>
+                    {error && <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 text-white p-4">{error}</div>}
+                    <video ref={videoRef} className="w-full h-full rounded-md" autoPlay muted></video>
                   </div>
                   <Button
                     className={`w-full mt-4 ${isMonitoring ? 'bg-destructive hover:bg-destructive/90' : 'btn-hero'}`}
-                    onClick={() => setIsMonitoring(!isMonitoring)}
+                    onClick={handleToggleMonitoring}
                   >
                     {isMonitoring ? (
                       <>
@@ -166,7 +250,7 @@ export default function EmotionMonitoring() {
                               </span>
                             </div>
                             <span className="text-sm text-muted-foreground">
-                              {emotion.value}%
+                              {emotion.value.toFixed(2)}%
                             </span>
                           </div>
                           <Progress value={emotion.value} className="h-2" />

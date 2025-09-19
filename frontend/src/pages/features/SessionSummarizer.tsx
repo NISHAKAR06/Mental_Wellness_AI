@@ -16,8 +16,12 @@ import {
 } from 'lucide-react';
 
 export default function SessionSummarizer() {
-  const [sessionNotes, setSessionNotes] = useState('');
+  const [sessionNotes, setSessionNotes] = useState(
+    "Patient discussed feelings of anxiety related to work deadlines. We explored cognitive reframing techniques to challenge negative thought patterns. Patient reported difficulty with sleep, waking up multiple times during the night. We discussed sleep hygiene strategies, such as creating a relaxing bedtime routine and avoiding screens before bed. Patient also mentioned feeling a lack of motivation for hobbies they used to enjoy. We brainstormed small, manageable steps to re-engage with these activities. The patient expressed a desire to work on self-compassion and reducing self-criticism."
+  );
   const [isGenerating, setIsGenerating] = useState(false);
+  const [summary, setSummary] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   const pastSummaries = [
     {
@@ -42,9 +46,51 @@ export default function SessionSummarizer() {
 
   const handleGenerateSummary = async () => {
     setIsGenerating(true);
-    // Simulate AI processing
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    setIsGenerating(false);
+    setSummary(null);
+    setError(null);
+    try {
+      const response = await fetch('/api/summarize/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ session_notes: sessionNotes }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      setSummary(data);
+    } catch (err) {
+      console.error('Error generating summary:', err);
+      setError(err.message);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleExport = () => {
+    if (!summary) return;
+
+    let content = `AI-Generated Summary\n\n`;
+    content += `Main Themes:\n${summary.mainThemes.join('\n')}\n\n`;
+    content += `Key Insights:\n${summary.keyInsights.join('\n')}\n\n`;
+    content += `Action Items:\n${summary.actionItems.join('\n')}\n\n`;
+    content += `Next Session Goals:\n${summary.nextSessionGoals.join('\n')}`;
+
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'session-summary.txt';
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const mockSummary = {
@@ -193,68 +239,91 @@ export default function SessionSummarizer() {
                       <Brain className="h-5 w-5" />
                       AI-Generated Summary
                     </CardTitle>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={handleExport}>
                       <Download className="mr-2 h-4 w-4" />
                       Export
                     </Button>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {/* Main Themes */}
-                  <div>
-                    <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-                      <TrendingUp className="h-4 w-4" />
-                      Main Themes
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                      {mockSummary.mainThemes.map((theme) => (
-                        <Badge key={theme} className="bg-primary-soft text-primary">
-                          {theme}
-                        </Badge>
-                      ))}
+                  {error && (
+                    <div className="text-red-500 p-4 bg-red-100 rounded-md">
+                      <h4 className="font-bold mb-2">Error</h4>
+                      <p>{error}</p>
                     </div>
-                  </div>
+                  )}
+                  
+                  {!summary && !isGenerating && !error && (
+                    <div className="text-center text-muted-foreground p-8">
+                      <p>Your generated summary will appear here.</p>
+                    </div>
+                  )}
 
-                  {/* Key Insights */}
-                  <div>
-                    <h3 className="font-semibold text-foreground mb-3">Key Insights</h3>
-                    <ul className="space-y-2">
-                      {mockSummary.keyInsights.map((insight, index) => (
-                        <li key={index} className="flex items-start gap-2 text-sm text-muted-foreground">
-                          <span className="text-primary font-bold">•</span>
-                          {insight}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                  {isGenerating && (
+                     <div className="text-center text-muted-foreground p-8">
+                      <p>Generating summary...</p>
+                    </div>
+                  )}
 
-                  {/* Action Items */}
-                  <div>
-                    <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-                      <Target className="h-4 w-4" />
-                      Action Items
-                    </h3>
-                    <ul className="space-y-2">
-                      {mockSummary.actionItems.map((item, index) => (
-                        <li key={index} className="flex items-start gap-2 text-sm">
-                          <div className="w-4 h-4 rounded-sm border border-primary mt-0.5" />
-                          <span className="text-foreground">{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* Next Session Goals */}
-                  <div>
-                    <h3 className="font-semibold text-foreground mb-3">Next Session Goals</h3>
-                    <div className="space-y-2">
-                      {mockSummary.nextSessionGoals.map((goal, index) => (
-                        <div key={index} className="p-3 rounded-lg bg-accent/30">
-                          <p className="text-sm text-foreground">{goal}</p>
+                  {summary && (
+                    <>
+                      {/* Main Themes */}
+                      <div>
+                        <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+                          <TrendingUp className="h-4 w-4" />
+                          Main Themes
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                          {summary.mainThemes?.map((theme) => (
+                            <Badge key={theme} className="bg-primary-soft text-primary">
+                              {theme}
+                            </Badge>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                  </div>
+                      </div>
+
+                      {/* Key Insights */}
+                      <div>
+                        <h3 className="font-semibold text-foreground mb-3">Key Insights</h3>
+                        <ul className="space-y-2">
+                          {summary.keyInsights?.map((insight, index) => (
+                            <li key={index} className="flex items-start gap-2 text-sm text-muted-foreground">
+                              <span className="text-primary font-bold">•</span>
+                              {insight}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Action Items */}
+                      <div>
+                        <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+                          <Target className="h-4 w-4" />
+                          Action Items
+                        </h3>
+                        <ul className="space-y-2">
+                          {summary.actionItems?.map((item, index) => (
+                            <li key={index} className="flex items-start gap-2 text-sm">
+                              <div className="w-4 h-4 rounded-sm border border-primary mt-0.5" />
+                              <span className="text-foreground">{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Next Session Goals */}
+                      <div>
+                        <h3 className="font-semibold text-foreground mb-3">Next Session Goals</h3>
+                        <div className="space-y-2">
+                          {summary.nextSessionGoals?.map((goal, index) => (
+                            <div key={index} className="p-3 rounded-lg bg-accent/30">
+                              <p className="text-sm text-foreground">{goal}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </motion.div>
