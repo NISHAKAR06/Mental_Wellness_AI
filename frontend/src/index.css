@@ -1,0 +1,159 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Mental Wellness App Design System - ChatGPT Inspired */
+
+@layer base {
+  :root {
+    /* Light mode - Clean whites with subtle grays */
+    --background: 0 0% 98%;
+    --foreground: 210 10% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 210 10% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 10% 15%;
+
+    /* Black/white theme */
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
+    
+    --primary-glow: 0 0% 20%;
+    --primary-soft: 0 0% 95%;
+
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 210 10% 15%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 0 0% 95%;
+    --accent-foreground: 0 0% 9%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 142 76% 36%;
+
+    --sidebar-bg: 0 0% 98%;
+    --sidebar-border: 220 13% 91%;
+    
+    --hero-gradient: linear-gradient(135deg, hsl(0 0% 9%), hsl(0 0% 20%));
+    --card-shadow: 0 4px 6px -1px hsl(220 13% 91% / 0.1), 0 2px 4px -2px hsl(220 13% 91% / 0.1);
+    --glow-shadow: 0 0 20px hsl(0 0% 9% / 0.3);
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    /* Dark mode - ChatGPT style dark grays */
+    --background: 212 13% 12%;
+    --foreground: 210 20% 90%;
+
+    --card: 217 19% 15%;
+    --card-foreground: 210 20% 90%;
+
+    --popover: 217 19% 15%;
+    --popover-foreground: 210 20% 90%;
+
+    /* White theme for dark mode */
+    --primary: 0 0% 98%;
+    --primary-foreground: 212 13% 12%;
+    
+    --primary-glow: 0 0% 85%;
+    --primary-soft: 0 0% 25%;
+
+    --secondary: 217 19% 18%;
+    --secondary-foreground: 210 20% 90%;
+
+    --muted: 217 19% 18%;
+    --muted-foreground: 215 15% 65%;
+
+    --accent: 0 0% 25%;
+    --accent-foreground: 210 20% 90%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 20% 90%;
+
+    --border: 217 19% 20%;
+    --input: 217 19% 20%;
+    --ring: 142 86% 46%;
+
+    --sidebar-bg: 217 19% 15%;
+    --sidebar-border: 217 19% 20%;
+    
+    --hero-gradient: linear-gradient(135deg, hsl(0 0% 98%), hsl(0 0% 85%));
+    --card-shadow: 0 4px 6px -1px hsl(0 0% 0% / 0.2), 0 2px 4px -2px hsl(0 0% 0% / 0.1);
+    --glow-shadow: 0 0 20px hsl(0 0% 98% / 0.4);
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground transition-colors duration-300;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer components {
+  /* Hero button variant */
+  .btn-hero {
+    @apply bg-gradient-to-r from-primary to-primary-glow text-primary-foreground font-medium px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105;
+  }
+
+  /* Wellness card styling */
+  .wellness-card {
+    @apply bg-card border border-border rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1;
+  }
+
+  /* Sidebar item */
+  .sidebar-item {
+    @apply flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-200;
+  }
+
+  .sidebar-item.active {
+    @apply bg-primary-soft text-primary border border-primary/20;
+  }
+
+  /* Glow effect */
+  .glow {
+    box-shadow: var(--glow-shadow);
+  }
+}
