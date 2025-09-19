@@ -3,11 +3,11 @@ import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Brain, 
-  Camera, 
-  Mic, 
-  Activity, 
+import {
+  Brain,
+  Camera,
+  Mic,
+  Activity,
   TrendingUp,
   Heart,
   Smile,
@@ -33,73 +33,62 @@ export default function EmotionMonitoring() {
 
   return (
     <div className="min-h-screen bg-background">
-        <main className="flex-1 p-6">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-8"
+      <main className="flex-1 p-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
+        >
+          <h1 className="text-3xl font-bold text-foreground mb-2">
+            AI Emotion Monitoring
+          </h1>
+          <p className="text-muted-foreground">
+            Real-time analysis of your emotional state using facial recognition and voice analysis
+          </p>
+          <Button
+            className={`mt-4 ${isMonitoring ? 'bg-destructive hover:bg-destructive/90' : 'btn-hero'}`}
+            onClick={() => setIsMonitoring(!isMonitoring)}
           >
-            <h1 className="text-3xl font-bold text-foreground mb-2">
-              AI Emotion Monitoring
-            </h1>
-            <p className="text-muted-foreground">
-              Real-time analysis of your emotional state using facial recognition and voice analysis
-            </p>
-          </motion.div>
+            {isMonitoring ? (
+              <>
+                Stop Monitoring
+              </>
+            ) : (
+              <>
+                <Activity className="mr-2 h-4 w-4" />
+                Start Monitoring
+              </>
+            )}
+          </Button>
+        </motion.div>
 
-          <div className="grid gap-6 lg:grid-cols-2">
-            {/* Monitoring Interface */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-200px)]">
+          {/* Left Column */}
+          <div className="flex flex-col gap-6 overflow-y-auto">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 }}
+              className="flex-1"
             >
-              <Card className="wellness-card">
+              <Card className="wellness-card h-full">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Brain className="h-5 w-5" />
-                    Live Monitoring
+                    <Camera className="h-5 w-5" />
+                    Video Feed
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {/* Camera View */}
-                  <div className="relative mb-6 aspect-video rounded-xl bg-gradient-to-br from-primary-soft to-accent overflow-hidden">
+                  <div className="relative aspect-video rounded-xl bg-gradient-to-br from-primary-soft to-accent overflow-hidden">
                     <div className="flex h-full flex-col items-center justify-center">
                       <Camera className="h-16 w-16 text-primary mb-4" />
                       <p className="text-lg font-medium text-foreground mb-2">
                         {isMonitoring ? 'Monitoring Active' : 'Ready to Monitor'}
                       </p>
-                      <p className="text-sm text-muted-foreground text-center max-w-sm">
-                        {isMonitoring 
-                          ? 'AI is analyzing your facial expressions and voice patterns'
-                          : 'Click start to begin emotion detection'
-                        }
-                      </p>
                     </div>
-                    
-                    {/* Status indicators */}
-                    <div className="absolute top-4 left-4 flex gap-2">
-                      <div className={`flex items-center gap-1 rounded-full px-2 py-1 text-xs ${isMonitoring ? 'bg-green-500/20 text-green-700 dark:text-green-400' : 'bg-gray-500/20 text-gray-600 dark:text-gray-400'}`}>
-                        <Camera className="h-3 w-3" />
-                        Camera
-                      </div>
-                      <div className={`flex items-center gap-1 rounded-full px-2 py-1 text-xs ${isMonitoring ? 'bg-blue-500/20 text-blue-700 dark:text-blue-400' : 'bg-gray-500/20 text-gray-600 dark:text-gray-400'}`}>
-                        <Mic className="h-3 w-3" />
-                        Audio
-                      </div>
-                    </div>
-
-                    {isMonitoring && (
-                      <div className="absolute bottom-4 right-4 flex items-center gap-2 rounded-full bg-background/90 px-3 py-1">
-                        <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                        <span className="text-xs font-medium">Analyzing</span>
-                      </div>
-                    )}
                   </div>
-
-                  {/* Control Button */}
                   <Button
-                    className={`w-full ${isMonitoring ? 'bg-destructive hover:bg-destructive/90' : 'btn-hero'}`}
+                    className={`w-full mt-4 ${isMonitoring ? 'bg-destructive hover:bg-destructive/90' : 'btn-hero'}`}
                     onClick={() => setIsMonitoring(!isMonitoring)}
                   >
                     {isMonitoring ? (
@@ -116,16 +105,47 @@ export default function EmotionMonitoring() {
                 </CardContent>
               </Card>
             </motion.div>
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+              className="flex-1"
+            >
+              <Card className="wellness-card h-full">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Heart className="h-5 w-5" />
+                    Vital Indicators
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {vitalSigns.map((sign) => (
+                      <div key={sign.name} className="flex items-center justify-between p-3 rounded-lg bg-accent/30">
+                        <div>
+                          <p className="font-medium text-foreground">{sign.name}</p>
+                          <p className="text-sm text-muted-foreground">{sign.status}</p>
+                        </div>
+                        <div className={`font-mono font-bold ${sign.color}`}>
+                          {sign.value}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div>
 
-            {/* Results */}
+          {/* Right Column */}
+          <div className="flex flex-col gap-6 overflow-y-auto">
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-              className="space-y-6"
+              transition={{ delay: 0.1 }}
+              className="flex-1"
             >
-              {/* Emotion Analysis */}
-              <Card className="wellness-card">
+              <Card className="wellness-card h-full">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Smile className="h-5 w-5" />
@@ -156,34 +176,14 @@ export default function EmotionMonitoring() {
                   </div>
                 </CardContent>
               </Card>
-
-              {/* Vital Signs */}
-              <Card className="wellness-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Heart className="h-5 w-5" />
-                    Vital Indicators
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {vitalSigns.map((sign) => (
-                      <div key={sign.name} className="flex items-center justify-between p-3 rounded-lg bg-accent/30">
-                        <div>
-                          <p className="font-medium text-foreground">{sign.name}</p>
-                          <p className="text-sm text-muted-foreground">{sign.status}</p>
-                        </div>
-                        <div className={`font-mono font-bold ${sign.color}`}>
-                          {sign.value}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Insights */}
-              <Card className="wellness-card">
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+              className="flex-1"
+            >
+              <Card className="wellness-card h-full">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <TrendingUp className="h-5 w-5" />
@@ -214,7 +214,8 @@ export default function EmotionMonitoring() {
               </Card>
             </motion.div>
           </div>
-        </main>
+        </div>
+      </main>
     </div>
   );
 }

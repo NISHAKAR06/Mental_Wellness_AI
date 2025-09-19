@@ -69,7 +69,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         initial="closed"
         animate={isOpen ? "open" : "closed"}
         className={cn(
-          "fixed left-0 top-0 z-50 h-screen border-r border-border bg-sidebar-bg pt-16 md:sticky md:top-16 md:h-[calc(100vh-4rem)]",
+          "fixed left-0 top-0 z-50 h-screen border-r border-border bg-sidebar-bg pt-8 md:sticky md:top-16 md:h-[calc(100vh-4rem)]",
           "flex flex-col transition-all duration-300 ease-in-out",
           isCollapsed ? "w-20" : "w-72"
         )}
@@ -84,11 +84,31 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           <X className="h-4 w-4" />
         </Button>
 
+        {/* Sidebar Header */}
+        <div className="flex items-center justify-center p-4">
+          <AnimatePresence>
+            {!isCollapsed && (
+              <motion.div
+                initial={{ opacity: 0, width: 0 }}
+                animate={{ opacity: 1, width: 'auto' }}
+                exit={{ opacity: 0, width: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div className="text-center">
+                  <h1 className="text-lg font-bold">Mental Wellness Hub</h1>
+                  <p className="text-xs text-muted-foreground mt-0.5">your AI-powered wellness companion</p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
         {/* Collapse Toggle Button */}
         <div className="absolute -right-3 top-1/2 hidden -translate-y-1/2 md:block">
-          <Button 
-            variant="outline" 
-            size="icon" 
+          <Button
+            variant="outline"
+            size="icon"
             className="h-6 w-6 rounded-full"
             onClick={() => setIsCollapsed(!isCollapsed)}
           >
@@ -97,7 +117,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         </div>
 
         {/* Sidebar Content */}
-        <div className="flex flex-1 flex-col gap-2 overflow-y-auto p-4 pt-8 md:pt-4">
+        <div className="flex flex-1 flex-col gap-2 overflow-y-auto p-4">
           <div className="flex flex-1 flex-col justify-between">
             <nav className="space-y-3">
               {mainNavItems.map((item) => {

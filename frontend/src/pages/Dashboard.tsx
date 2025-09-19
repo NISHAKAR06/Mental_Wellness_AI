@@ -11,7 +11,7 @@ export default function Dashboard() {
   const { t } = useLanguage();
   const { user } = useAuth();
 
-  const features = sidebarItems.slice(1); // Exclude dashboard itself
+  const features = sidebarItems.slice(1, -1); // Exclude dashboard and settings
 
   return (
     <div className="min-h-screen bg-background">

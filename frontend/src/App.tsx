@@ -19,6 +19,8 @@ import Multilingual from "./pages/features/Multilingual";
 import Lifestyle from "./pages/features/Lifestyle";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import SessionGuidelines from "./pages/SessionGuidelines";
+import VideoCall from "./pages/VideoCall";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +47,8 @@ const App = () => (
                   <Route path="/dashboard/lifestyle" element={<Lifestyle />} />
                   <Route path="/dashboard/settings" element={<Settings />} />
                 </Route>
+                <Route path="/session-guidelines" element={<SessionGuidelines />} />
+                <Route path="/video-call" element={<VideoCall />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
