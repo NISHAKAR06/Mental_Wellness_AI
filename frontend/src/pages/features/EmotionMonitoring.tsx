@@ -16,7 +16,7 @@ import {
   Frown,
 } from "lucide-react";
 
-// AIInsights Component
+// Enhanced AIInsights Component that properly analyzes emotion data
 const AIInsights = ({
   emotions,
   voiceStress,
@@ -26,97 +26,163 @@ const AIInsights = ({
   voiceStress: { value: string; status: string; color: string };
   facialTension: { value: string; status: string; color: string };
 }) => {
-  const { t } = useLanguage();
-  // Analyze emotional state and generate insights
-  const analyzeEmotions = () => {
-    const dominantEmotion = emotions.reduce((prev, current) =>
-      prev.value > current.value ? prev : current
+  // Check if we have meaningful data
+  const totalEmotions = emotions.reduce((sum, emotion) => sum + emotion.value, 0);
+  const hasEmotionData = totalEmotions > 5;
+
+  // If no data yet, show loading state
+  if (!hasEmotionData) {
+    return (
+      <div className="space-y-3 text-sm">
+        <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+          <p className="font-medium text-blue-800 dark:text-blue-400 mb-1">
+            Overall Wellbeing: Starting 🧠
+          </p>
+          <p className="text-sm opacity-80">
+            Analyzing your facial expressions and voice patterns...
+          </p>
+        </div>
+        <div className="p-3 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
+          <p className="font-medium text-orange-800 dark:text-orange-400 mb-2">
+            Getting Started
+          </p>
+          <ul className="text-orange-700 dark:text-orange-300 text-sm space-y-1">
+            <li>• Allow camera and microphone access</li>
+            <li>• Begin monitoring to see analysis</li>
+            <li>• Insights will update in real-time</li>
+          </ul>
+        </div>
+      </div>
     );
+  }
 
-    const happiness = emotions.find(e => e.name === "Happy" || e.name === t('emotionmonitoring.happyclear'))?.value || 0;
-    const anxiety = emotions.find(e => e.name === "Anxious" || e.name === t('emotionmonitoring.anxious'))?.value || 0;
-    const stress = emotions.find(e => e.name === "Stressed" || e.name === t('emotionmonitoring.stressed'))?.value || 0;
+  // Analyze all emotions
+  console.log('Emotion data for AI insights:', emotions.map(e => `${e.name}: ${e.value.toFixed(1)}%`));
 
-    // Overall wellbeing assessment
-    let wellbeing = t('emotionmonitoring.neutral');
-    let emoji = "😐";
-    let color = "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800";
-    let titleColor = "text-blue-800 dark:text-blue-400";
+  // Find dominant emotion
+  const dominantEmotion = [...emotions].sort((a, b) => b.value - a.value)[0];
 
-    if (happiness > 60 && anxiety < 20 && stress < 20) {
-      wellbeing = t('emotionmonitoring.excellent');
-      emoji = "😊";
-      color = "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800";
-      titleColor = "text-green-800 dark:text-green-400";
-    } else if (anxiety > 40 || stress > 40) {
-      wellbeing = t('emotionmonitoring.needs_attention');
-      emoji = "😟";
-      color = "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800";
-      titleColor = "text-red-800 dark:text-red-400";
-    } else if (happiness > 40) {
-      wellbeing = t('emotionmonitoring.good');
-      emoji = "😊";
-      color = "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800";
-      titleColor = "text-green-800 dark:text-green-400";
-    }
+  // Categorize emotions by type
+  const happyEmotions = emotions.filter(e =>
+    e.color.includes('green') &&
+    (e.name.toLowerCase().includes('happy') || e.name.toLowerCase().includes('joy'))
+  ).reduce((sum, e) => sum + e.value, 0);
 
-    // Generate personalized insights
-    let insights = "";
-    let recommendations = [];
+  const negativeEmotions = emotions.filter(e =>
+    e.color.includes('red') || e.color.includes('orange')
+  ).reduce((sum, e) => sum + e.value, 0);
 
-    if (voiceStress.value === "Medium" || voiceStress.value === "High" || voiceStress.value === "Very High") {
-      insights += t('emotionmonitoring.voice_stress_insight');
-      recommendations.push(t('emotionmonitoring.voice_recommendation'));
-    }
+  const neutralEmotions = emotions.filter(e =>
+    e.color.includes('yellow') || e.color.includes('blue')
+  ).reduce((sum, e) => sum + e.value, 0);
 
-    if (facialTension.value === "High" || facialTension.value === "Very High") {
-      insights += t('emotionmonitoring.facial_tension_insight');
-      recommendations.push(t('emotionmonitoring.facial_recommendation'));
-    }
+  // Calculate percentages
+  const happyPercent = (happyEmotions / totalEmotions) * 100;
+  const negativePercent = (negativeEmotions / totalEmotions) * 100;
 
-    if (dominantEmotion.name === "Happy" || dominantEmotion.name === t('emotionmonitoring.happyclear')) {
-      insights += t('emotionmonitoring.happy_insight');
-      recommendations.push(t('emotionmonitoring.happy_recommendation'));
-    }
+  console.log(`Emotion analysis: Happy:${happyPercent.toFixed(1)}% Negative:${negativePercent.toFixed(1)}% Dominant:${dominantEmotion.name}`);
 
-    if (dominantEmotion.name === "Anxious" || dominantEmotion.name === t('emotionmonitoring.anxious') || dominantEmotion.name === "Stressed" || dominantEmotion.name === t('emotionmonitoring.stressed')) {
-      insights += t('emotionmonitoring.stress_insight');
-      recommendations.push(t('emotionmonitoring.stress_recommendation'));
-    }
+  // Determine wellbeing state
+  let wellbeing = "Balanced";
+  let emoji = "😐";
+  let insights = "";
+  let recommendations = [];
+  let wellbeingColor = "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-400";
 
-    if (recommendations.length === 0) {
-      recommendations.push(t('emotionmonitoring.stable_message'));
-    }
+  if (happyPercent > 60 && negativePercent < 25) {
+    wellbeing = "Excellent";
+    emoji = "😊";
+    wellbeingColor = "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-400";
+    insights = `Wonderful! Your emotional state is strongly positive with ${happyPercent.toFixed(1)}% happiness indicators.`;
+    recommendations = [
+      "Keep engaging in whatever is making you feel so good!",
+      "Consider sharing your positive energy with others.",
+      "Take mental notes of what brings you joy."
+    ];
+  } else if (happyPercent > 40 && negativePercent < 35) {
+    wellbeing = "Good";
+    emoji = "😊";
+    wellbeingColor = "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-400";
+    insights = `Your emotional state is positive with ${happyPercent.toFixed(1)}% positive emotions detected.`;
+    recommendations = [
+      "You're doing well emotionally! Keep it up.",
+      "Consider activities that maintain this good state.",
+    ];
+  } else if (negativePercent > 40) {
+    wellbeing = "Needs Attention";
+    emoji = "😟";
+    wellbeingColor = "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-400";
+    insights = `I'm detecting elevated stress indicators (${negativePercent.toFixed(1)}%). It's okay to acknowledge when you're not feeling at your best.`;
+    recommendations = [
+      "Take a few slow, deep breaths to help center yourself.",
+      "Try progressive muscle relaxation - tense and release different muscle groups.",
+      "Consider stepping away from your current task for a moment.",
+      "Speaking with a trusted friend can help process difficult emotions.",
+    ];
+  } else if (negativePercent > 25) {
+    wellbeing = "Moderate Stress";
+    emoji = "🤔";
+    wellbeingColor = "bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 text-orange-800 dark:text-orange-400";
+    insights = `Your emotional analysis shows some stress indicators (${negativePercent.toFixed(1)}%). This can be completely normal and manageable.`;
+    recommendations = [
+      "Try the 4-4-4 breathing technique: 4 seconds in, hold for 4, out for 4.",
+      "A short walk or stretch break can help reset your state.",
+      "Consider journaling about how you're feeling.",
+      "Reach out for support if you need to talk.",
+    ];
+  } else {
+    wellbeing = "Stable";
+    emoji = "✨";
+    wellbeingColor = "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-400";
+    insights = `Your emotional state appears balanced and stable. ${dominantEmotion.name} is the most prominent emotion (${dominantEmotion.value.toFixed(1)}%).`;
+    recommendations = [
+      "You're maintaining good emotional balance.",
+      "Keep practicing self-care habits.",
+      "Continue monitoring for any changes in your wellbeing.",
+    ];
+  }
 
-    return { wellbeing, emoji, color, titleColor, insights, recommendations };
-  };
-
-  const analysis = analyzeEmotions();
+  // Override with voice stress if critical
+  if (voiceStress.value === "Very High" || voiceStress.value === "Critical") {
+    wellbeing = "Urgent: High Stress";
+    emoji = "🚨";
+    wellbeingColor = "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-400";
+    insights = "Voice analysis indicates very high physiological stress. Prioritize immediate self-care.";
+    recommendations = [
+      "Stop and focus on deep breathing: 4 seconds in, hold 4 seconds, out 6 seconds.",
+      "Step away from current stressors if possible.",
+      "Call a loved one or crisis line if needed.",
+      "Professional mental health support may be beneficial.",
+      "Consider short-term stress management techniques.",
+    ];
+  }
 
   return (
     <div className="space-y-3 text-sm">
-      <div className={`p-3 rounded-lg ${analysis.color} border`}>
-        <p className={`font-medium ${analysis.titleColor} mb-1`}>
-          {t('emotionmonitoring.overall_wellbeing')}: {analysis.wellbeing} {analysis.emoji}
+      <div className={`p-3 rounded-lg ${wellbeingColor.split(' ')[0]} border ${wellbeingColor.split(' ')[1]} ${wellbeingColor.split(' ')[2] || ''}`}>
+        <p className="font-medium mb-1">
+          Overall Wellbeing: {wellbeing} {emoji}
         </p>
-        <p className={`text-sm ${analysis.titleColor.replace('text-', 'text-').replace('-800', '-700').replace('-400', '-300')}`}>
-          {analysis.insights || t('emotionmonitoring.stable_message')}
+        <p className="text-sm opacity-80">
+          {insights}
         </p>
       </div>
 
       <div className="p-3 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
-        <p className="font-medium text-orange-800 dark:text-orange-400 mb-1">
-          {t('emotionmonitoring.recommendation_title')}
+        <p className="font-medium text-orange-800 dark:text-orange-400 mb-2">
+          Recommendations
         </p>
-        <ul className="text-orange-700 dark:text-orange-300 text-sm">
-          {analysis.recommendations.map((rec, index) => (
-            <li key={index} className="mb-1">• {rec}</li>
+        <ul className="text-orange-700 dark:text-orange-300 text-sm space-y-1">
+          {recommendations.map((rec, index) => (
+            <li key={index}>• {rec}</li>
           ))}
         </ul>
       </div>
     </div>
   );
 };
+
+
 
 export default function EmotionMonitoring() {
   const { t } = useLanguage();
@@ -169,7 +235,8 @@ export default function EmotionMonitoring() {
   useEffect(() => {
     if (isMonitoring) {
       const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${wsProtocol}//${window.location.host}/ws/emotions/`;
+      const wsHost = process.env.NODE_ENV === 'production' ? window.location.host : 'localhost:8000';
+      const wsUrl = `${wsProtocol}//${wsHost}/ws/emotions/`;
       ws.current = new WebSocket(wsUrl);
 
       startVideo(); // Start video after WebSocket is set up
@@ -261,21 +328,21 @@ export default function EmotionMonitoring() {
     };
   }, [isMonitoring]);
 
-  // Calculate vital signs from voice analysis data
+  // Calculate vital signs from voice analysis data (no translations)
   const getVoiceStressLevel = () => {
     const stress = voiceAnalysis.stress_level;
-    if (stress < 25) return { value: t('emotionmonitoring.low'), status: t('emotionmonitoring.calm'), color: "text-green-600" };
-    if (stress < 50) return { value: t('emotionmonitoring.medium'), status: t('emotionmonitoring.moderate'), color: "text-yellow-600" };
-    if (stress < 75) return { value: t('emotionmonitoring.high'), status: t('emotionmonitoring.elevated'), color: "text-orange-600" };
-    return { value: t('emotionmonitoring.very_high'), status: t('emotionmonitoring.critical'), color: "text-red-600" };
+    if (stress < 25) return { value: "Low", status: "Calm", color: "text-green-600" };
+    if (stress < 50) return { value: "Medium", status: "Moderate", color: "text-yellow-600" };
+    if (stress < 75) return { value: "High", status: "Elevated", color: "text-orange-600" };
+    return { value: "Very High", status: "Critical", color: "text-red-600" };
   };
 
   const getFacialTensionLevel = () => {
     const facialStress = Math.max(voiceAnalysis.facial_anxious, voiceAnalysis.facial_stressed);
-    if (facialStress < 25) return { value: t('emotionmonitoring.minimal'), status: t('emotionmonitoring.relaxed'), color: "text-green-600" };
-    if (facialStress < 50) return { value: t('emotionmonitoring.moderate'), status: t('emotionmonitoring.normal'), color: "text-blue-600" };
-    if (facialStress < 75) return { value: t('emotionmonitoring.high'), status: t('emotionmonitoring.tensed'), color: "text-orange-600" };
-    return { value: t('emotionmonitoring.very_high'), status: t('emotionmonitoring.stressed'), color: "text-red-600" };
+    if (facialStress < 25) return { value: "Minimal", status: "Relaxed", color: "text-green-600" };
+    if (facialStress < 50) return { value: "Moderate", status: "Normal", color: "text-blue-600" };
+    if (facialStress < 75) return { value: "High", status: "Tensed", color: "text-orange-600" };
+    return { value: "Very High", status: "Stressed", color: "text-red-600" };
   };
 
   const voiceStress = getVoiceStressLevel();
@@ -283,19 +350,13 @@ export default function EmotionMonitoring() {
 
   const vitalSigns = [
     {
-      name: t('emotionmonitoring.heart_rate'),
-      value: '72 BPM',
-      status: t('emotionmonitoring.normal'),
-      color: 'text-green-600'
-    },
-    {
-      name: t('emotionmonitoring.voice_stress'),
+      name: "Voice Stress",
       value: voiceStress.value,
       status: voiceStress.status,
       color: voiceStress.color,
     },
     {
-      name: t('emotionmonitoring.facial_tension'),
+      name: "Facial Tension",
       value: facialTension.value,
       status: facialTension.status,
       color: facialTension.color,
@@ -311,7 +372,7 @@ export default function EmotionMonitoring() {
           className="mb-8"
         >
           <h1 className="text-3xl font-bold text-foreground mb-2">
-            {t('emotionmonitoring.title')}
+            {t('emotion monitoring.title')}
           </h1>
           <p className="text-muted-foreground">
             {t('emotionmonitoring.subtitle')}
