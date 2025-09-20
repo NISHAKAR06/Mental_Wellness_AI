@@ -13,13 +13,120 @@ import {
   Heart,
   Smile,
   Meh,
-  Frown
-} from 'lucide-react';
+  Frown,
+} from "lucide-react";
+
+// AIInsights Component
+const AIInsights = ({
+  emotions,
+  voiceStress,
+  facialTension,
+}: {
+  emotions: Array<{ name: string; value: number; color: string; icon: any }>;
+  voiceStress: { value: string; status: string; color: string };
+  facialTension: { value: string; status: string; color: string };
+}) => {
+  const { t } = useLanguage();
+  // Analyze emotional state and generate insights
+  const analyzeEmotions = () => {
+    const dominantEmotion = emotions.reduce((prev, current) =>
+      prev.value > current.value ? prev : current
+    );
+
+    const happiness = emotions.find(e => e.name === "Happy" || e.name === t('emotionmonitoring.happyclear'))?.value || 0;
+    const anxiety = emotions.find(e => e.name === "Anxious" || e.name === t('emotionmonitoring.anxious'))?.value || 0;
+    const stress = emotions.find(e => e.name === "Stressed" || e.name === t('emotionmonitoring.stressed'))?.value || 0;
+
+    // Overall wellbeing assessment
+    let wellbeing = t('emotionmonitoring.neutral');
+    let emoji = "😐";
+    let color = "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800";
+    let titleColor = "text-blue-800 dark:text-blue-400";
+
+    if (happiness > 60 && anxiety < 20 && stress < 20) {
+      wellbeing = t('emotionmonitoring.excellent');
+      emoji = "😊";
+      color = "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800";
+      titleColor = "text-green-800 dark:text-green-400";
+    } else if (anxiety > 40 || stress > 40) {
+      wellbeing = t('emotionmonitoring.needs_attention');
+      emoji = "😟";
+      color = "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800";
+      titleColor = "text-red-800 dark:text-red-400";
+    } else if (happiness > 40) {
+      wellbeing = t('emotionmonitoring.good');
+      emoji = "😊";
+      color = "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800";
+      titleColor = "text-green-800 dark:text-green-400";
+    }
+
+    // Generate personalized insights
+    let insights = "";
+    let recommendations = [];
+
+    if (voiceStress.value === "Medium" || voiceStress.value === "High" || voiceStress.value === "Very High") {
+      insights += t('emotionmonitoring.voice_stress_insight');
+      recommendations.push(t('emotionmonitoring.voice_recommendation'));
+    }
+
+    if (facialTension.value === "High" || facialTension.value === "Very High") {
+      insights += t('emotionmonitoring.facial_tension_insight');
+      recommendations.push(t('emotionmonitoring.facial_recommendation'));
+    }
+
+    if (dominantEmotion.name === "Happy" || dominantEmotion.name === t('emotionmonitoring.happyclear')) {
+      insights += t('emotionmonitoring.happy_insight');
+      recommendations.push(t('emotionmonitoring.happy_recommendation'));
+    }
+
+    if (dominantEmotion.name === "Anxious" || dominantEmotion.name === t('emotionmonitoring.anxious') || dominantEmotion.name === "Stressed" || dominantEmotion.name === t('emotionmonitoring.stressed')) {
+      insights += t('emotionmonitoring.stress_insight');
+      recommendations.push(t('emotionmonitoring.stress_recommendation'));
+    }
+
+    if (recommendations.length === 0) {
+      recommendations.push(t('emotionmonitoring.stable_message'));
+    }
+
+    return { wellbeing, emoji, color, titleColor, insights, recommendations };
+  };
+
+  const analysis = analyzeEmotions();
+
+  return (
+    <div className="space-y-3 text-sm">
+      <div className={`p-3 rounded-lg ${analysis.color} border`}>
+        <p className={`font-medium ${analysis.titleColor} mb-1`}>
+          {t('emotionmonitoring.overall_wellbeing')}: {analysis.wellbeing} {analysis.emoji}
+        </p>
+        <p className={`text-sm ${analysis.titleColor.replace('text-', 'text-').replace('-800', '-700').replace('-400', '-300')}`}>
+          {analysis.insights || t('emotionmonitoring.stable_message')}
+        </p>
+      </div>
+
+      <div className="p-3 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
+        <p className="font-medium text-orange-800 dark:text-orange-400 mb-1">
+          {t('emotionmonitoring.recommendation_title')}
+        </p>
+        <ul className="text-orange-700 dark:text-orange-300 text-sm">
+          {analysis.recommendations.map((rec, index) => (
+            <li key={index} className="mb-1">• {rec}</li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+};
 
 export default function EmotionMonitoring() {
   const { t } = useLanguage();
   const [isMonitoring, setIsMonitoring] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [voiceAnalysis, setVoiceAnalysis] = useState({
+    stress_level: 0,
+    facial_anxious: 0,
+    facial_stressed: 0
+  });
   const [emotions, setEmotions] = useState([
     { name: t('emotionmonitoring.happyclear'), value: 0, color: 'bg-green-500', icon: Smile },
     { name: t('emotionmonitoring.neutral'), value: 0, color: 'bg-yellow-500', icon: Meh },
@@ -29,9 +136,11 @@ export default function EmotionMonitoring() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const intervalRef = useRef<NodeJS.Timeout>();
   const ws = useRef<WebSocket | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
   const startVideo = () => {
-    navigator.mediaDevices.getUserMedia({ video: {} })
+    navigator.mediaDevices
+      .getUserMedia({ video: true, audio: true })
       .then((stream) => {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
@@ -54,28 +163,37 @@ export default function EmotionMonitoring() {
   };
 
   const handleToggleMonitoring = () => {
-    setIsMonitoring((prev) => {
-      if (!prev) {
-        startVideo();
-        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${wsProtocol}//${window.location.host}/ws/emotions/`;
-        ws.current = new WebSocket(wsUrl);
-        ws.current.onmessage = (event) => {
-          const data = JSON.parse(event.data);
-          if (data.emotions) {
-            const { happy, neutral, anxious, stressed } = data.emotions;
-            setEmotions([
-              { name: t('emotionmonitoring.happyclear'), value: happy, color: 'bg-green-500', icon: Smile },
-              { name: t('emotionmonitoring.neutral'), value: neutral, color: 'bg-yellow-500', icon: Meh },
-              { name: t('emotionmonitoring.anxious'), value: anxious, color: 'bg-orange-500', icon: Frown },
-              { name: t('emotionmonitoring.stressed'), value: stressed, color: 'bg-red-500', icon: Frown }
-            ]);
-          }
-        };
-      } else {
+    setIsMonitoring((prev) => !prev);
+  };
+
+  useEffect(() => {
+    if (isMonitoring) {
+      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${wsProtocol}//${window.location.host}/ws/emotions/`;
+      ws.current = new WebSocket(wsUrl);
+
+      startVideo(); // Start video after WebSocket is set up
+
+      ws.current.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.emotions) {
+          const { happy, neutral, anxious, stressed } = data.emotions;
+          setEmotions([
+            { name: t('emotionmonitoring.happyclear'), value: happy, color: 'bg-green-500', icon: Smile },
+            { name: t('emotionmonitoring.neutral'), value: neutral, color: 'bg-yellow-500', icon: Meh },
+            { name: t('emotionmonitoring.anxious'), value: anxious, color: 'bg-orange-500', icon: Frown },
+            { name: t('emotionmonitoring.stressed'), value: stressed, color: 'bg-red-500', icon: Frown }
+          ]);
+        }
+        if (data.voice_analysis) {
+          setVoiceAnalysis(data.voice_analysis);
+        }
+      };
+
+      return () => {
         stopVideo();
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
+        if (mediaRecorderRef.current) {
+          mediaRecorderRef.current.stop();
         }
         if (ws.current) {
           ws.current.close();
@@ -86,22 +204,50 @@ export default function EmotionMonitoring() {
           { name: t('emotionmonitoring.anxious'), value: 0, color: 'bg-orange-500', icon: Frown },
           { name: t('emotionmonitoring.stressed'), value: 0, color: 'bg-red-500', icon: Frown }
         ]);
-      }
-      return !prev;
-    });
-  };
+      };
+    }
+  }, [isMonitoring]);
+
+  // Separate useEffect for MediaRecorder initialization
+  useEffect(() => {
+    if (ws.current && isMonitoring && videoRef.current?.srcObject) {
+      mediaRecorderRef.current = new MediaRecorder(
+        videoRef.current.srcObject as MediaStream
+      );
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        if (
+          event.data.size > 0 &&
+          ws.current &&
+          ws.current.readyState === WebSocket.OPEN
+        ) {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const base64Audio = (reader.result as string).split(",")[1];
+            ws.current.send(JSON.stringify({ audio: base64Audio }));
+          };
+          reader.readAsDataURL(event.data);
+        }
+      };
+      mediaRecorderRef.current.start(1000); // Send audio data every second
+    }
+  }, [isMonitoring, videoRef.current?.srcObject]);
 
   useEffect(() => {
     if (isMonitoring && videoRef.current) {
       intervalRef.current = setInterval(() => {
-        if (videoRef.current && ws.current && ws.current.readyState === WebSocket.OPEN) {
-          const canvas = document.createElement('canvas');
+        if (
+          videoRef.current &&
+          videoRef.current.videoWidth > 0 &&
+          ws.current &&
+          ws.current.readyState === WebSocket.OPEN
+        ) {
+          const canvas = document.createElement("canvas");
           canvas.width = videoRef.current.videoWidth;
           canvas.height = videoRef.current.videoHeight;
-          const ctx = canvas.getContext('2d');
+          const ctx = canvas.getContext("2d");
           if (ctx) {
             ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-            const dataUrl = canvas.toDataURL('image/jpeg');
+            const dataUrl = canvas.toDataURL("image/jpeg");
             ws.current.send(JSON.stringify({ image: dataUrl }));
           }
         }
@@ -115,10 +261,45 @@ export default function EmotionMonitoring() {
     };
   }, [isMonitoring]);
 
+  // Calculate vital signs from voice analysis data
+  const getVoiceStressLevel = () => {
+    const stress = voiceAnalysis.stress_level;
+    if (stress < 25) return { value: t('emotionmonitoring.low'), status: t('emotionmonitoring.calm'), color: "text-green-600" };
+    if (stress < 50) return { value: t('emotionmonitoring.medium'), status: t('emotionmonitoring.moderate'), color: "text-yellow-600" };
+    if (stress < 75) return { value: t('emotionmonitoring.high'), status: t('emotionmonitoring.elevated'), color: "text-orange-600" };
+    return { value: t('emotionmonitoring.very_high'), status: t('emotionmonitoring.critical'), color: "text-red-600" };
+  };
+
+  const getFacialTensionLevel = () => {
+    const facialStress = Math.max(voiceAnalysis.facial_anxious, voiceAnalysis.facial_stressed);
+    if (facialStress < 25) return { value: t('emotionmonitoring.minimal'), status: t('emotionmonitoring.relaxed'), color: "text-green-600" };
+    if (facialStress < 50) return { value: t('emotionmonitoring.moderate'), status: t('emotionmonitoring.normal'), color: "text-blue-600" };
+    if (facialStress < 75) return { value: t('emotionmonitoring.high'), status: t('emotionmonitoring.tensed'), color: "text-orange-600" };
+    return { value: t('emotionmonitoring.very_high'), status: t('emotionmonitoring.stressed'), color: "text-red-600" };
+  };
+
+  const voiceStress = getVoiceStressLevel();
+  const facialTension = getFacialTensionLevel();
+
   const vitalSigns = [
-    { name: t('emotionmonitoring.heart_rate'), value: '72 BPM', status: t('emotionmonitoring.normal'), color: 'text-green-600' },
-    { name: t('emotionmonitoring.voice_stress'), value: t('emotionmonitoring.low'), status: t('emotionmonitoring.calm'), color: 'text-blue-600' },
-    { name: t('emotionmonitoring.facial_tension'), value: t('emotionmonitoring.minimal'), status: t('emotionmonitoring.relaxed'), color: 'text-green-600' }
+    {
+      name: t('emotionmonitoring.heart_rate'),
+      value: '72 BPM',
+      status: t('emotionmonitoring.normal'),
+      color: 'text-green-600'
+    },
+    {
+      name: t('emotionmonitoring.voice_stress'),
+      value: voiceStress.value,
+      status: voiceStress.status,
+      color: voiceStress.color,
+    },
+    {
+      name: t('emotionmonitoring.facial_tension'),
+      value: facialTension.value,
+      status: facialTension.status,
+      color: facialTension.color,
+    },
   ];
 
   return (
@@ -136,7 +317,11 @@ export default function EmotionMonitoring() {
             {t('emotionmonitoring.subtitle')}
           </p>
           <Button
-            className={`mt-4 ${isMonitoring ? 'bg-destructive hover:bg-destructive/90' : 'btn-hero'}`}
+            className={`mt-4 ${
+              isMonitoring
+                ? "bg-destructive hover:bg-destructive/90"
+                : "btn-hero"
+            }`}
             onClick={handleToggleMonitoring}
           >
             {isMonitoring ? (
@@ -170,11 +355,24 @@ export default function EmotionMonitoring() {
                 </CardHeader>
                 <CardContent>
                   <div className="relative aspect-video rounded-xl bg-gradient-to-br from-primary-soft to-accent overflow-hidden">
-                    {error && <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 text-white p-4">{error}</div>}
-                    <video ref={videoRef} className="w-full h-full rounded-md" autoPlay muted></video>
+                    {error && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 text-white p-4">
+                        {error}
+                      </div>
+                    )}
+                    <video
+                      ref={videoRef}
+                      className="w-full h-full rounded-md"
+                      autoPlay
+                      muted
+                    ></video>
                   </div>
                   <Button
-                    className={`w-full mt-4 ${isMonitoring ? 'bg-destructive hover:bg-destructive/90' : 'btn-hero'}`}
+                    className={`w-full mt-4 ${
+                      isMonitoring
+                        ? "bg-destructive hover:bg-destructive/90"
+                        : "btn-hero"
+                    }`}
                     onClick={handleToggleMonitoring}
                   >
                     {isMonitoring ? (
@@ -207,10 +405,17 @@ export default function EmotionMonitoring() {
                 <CardContent>
                   <div className="space-y-4">
                     {vitalSigns.map((sign) => (
-                      <div key={sign.name} className="flex items-center justify-between p-3 rounded-lg bg-accent/30">
+                      <div
+                        key={sign.name}
+                        className="flex items-center justify-between p-3 rounded-lg bg-accent/30"
+                      >
                         <div>
-                          <p className="font-medium text-foreground">{sign.name}</p>
-                          <p className="text-sm text-muted-foreground">{sign.status}</p>
+                          <p className="font-medium text-foreground">
+                            {sign.name}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {sign.status}
+                          </p>
                         </div>
                         <div className={`font-mono font-bold ${sign.color}`}>
                           {sign.value}
@@ -277,25 +482,11 @@ export default function EmotionMonitoring() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3 text-sm">
-                    <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
-                      <p className="font-medium text-green-800 dark:text-green-400 mb-1">
-                        {t('emotionmonitoring.overall_wellbeing')}: {t('emotionmonitoring.good')} 😊
-                      </p>
-                      <p className="text-green-700 dark:text-green-300">
-                        {t('emotionmonitoring.stable_message')}
-                      </p>
-                    </div>
-
-                    <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                      <p className="font-medium text-blue-800 dark:text-blue-400 mb-1">
-                        {t('emotionmonitoring.recommendation')}
-                      </p>
-                      <p className="text-blue-700 dark:text-blue-300">
-                        {t('emotionmonitoring.breathing_recommendation')}
-                      </p>
-                    </div>
-                  </div>
+                  <AIInsights
+                    emotions={emotions}
+                    voiceStress={voiceStress}
+                    facialTension={facialTension}
+                  />
                 </CardContent>
               </Card>
             </motion.div>
