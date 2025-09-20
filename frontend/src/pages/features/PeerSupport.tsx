@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,14 +13,36 @@ import {
   Circle,
   Heart,
   Shield,
-  Clock
+  Clock,
+  ArrowLeft
 } from 'lucide-react';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogTrigger 
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function PeerSupport() {
+  const navigate = useNavigate();
+  const [isSignedUp, setIsSignedUp] = useState(false);
+  const [showEngagePrompt, setShowEngagePrompt] = useState(true);
+  const [showUsernameForm, setShowUsernameForm] = useState(false);
+  const [username, setUsername] = useState('');
+  const [currentView, setCurrentView] = useState('join');
   const [newMessage, setNewMessage] = useState('');
   const [activeGroup, setActiveGroup] = useState(1);
+  const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [newGroupDescription, setNewGroupDescription] = useState('');
 
-  const supportGroups = [
+  const [supportGroups, setSupportGroups] = useState([
     {
       id: 1,
       name: 'Young Adults (18-25)',
@@ -47,7 +70,7 @@ export default function PeerSupport() {
       category: 'Practice',
       isJoined: false
     }
-  ];
+  ]);
 
   const messages = [
     {
@@ -77,259 +100,318 @@ export default function PeerSupport() {
     }
   ];
 
-  const activeUsers = [
-    { name: 'Emma', avatar: '🌺', status: 'online' },
-    { name: 'Mike', avatar: '🌈', status: 'online' },
-    { name: 'Zara', avatar: '🦋', status: 'away' },
-    { name: 'Sam', avatar: '🌟', status: 'online' }
-  ];
-
   const handleSendMessage = () => {
     if (newMessage.trim()) {
       setNewMessage('');
     }
   };
 
+  const handleEngageYes = () => {
+    setShowEngagePrompt(false);
+    setShowUsernameForm(true);
+  };
+
+  const handleUsernameSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (username.trim()) {
+      setIsSignedUp(true);
+      setShowUsernameForm(false);
+    }
+  };
+
+  const handleJoinGroup = (groupId: number) => {
+    setSupportGroups(prevGroups =>
+      prevGroups.map(group =>
+        group.id === groupId ? { ...group, isJoined: true } : group
+      )
+    );
+  };
+
+  const handleCreateGroup = () => {
+    if (newGroupName.trim() && newGroupDescription.trim()) {
+      const newGroup = {
+        id: supportGroups.length + 1,
+        name: newGroupName,
+        description: newGroupDescription,
+        members: 1,
+        online: 1,
+        category: 'User Created',
+        isJoined: true,
+      };
+      setSupportGroups(prevGroups => [...prevGroups, newGroup]);
+      setNewGroupName('');
+      setNewGroupDescription('');
+      setIsCreateGroupOpen(false);
+      setActiveGroup(newGroup.id);
+      setCurrentView('inbox');
+    }
+  };
+
+  if (!isSignedUp) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center p-8"
+        >
+          {showEngagePrompt && (
+            <Card className="wellness-card max-w-md mx-auto">
+              <CardHeader>
+                <CardTitle className="text-2xl">Join Peer Support</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground mb-6">
+                  Would you like to engage with our supportive community?
+                </p>
+                <div className="flex justify-center gap-4">
+                  <Button onClick={handleEngageYes} className="btn-hero">Yes, I'd like to engage</Button>
+                  <Button variant="outline" onClick={() => navigate('/dashboard')}>Not right now</Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {showUsernameForm && (
+            <Card className="wellness-card max-w-md mx-auto">
+              <CardHeader>
+                <CardTitle className="text-2xl">Create Your Username</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground mb-6">
+                  Choose a username to use in the support groups. You can be anonymous.
+                </p>
+                <form onSubmit={handleUsernameSubmit} className="flex gap-2">
+                  <Input
+                    placeholder="Enter your username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    required
+                  />
+                  <Button type="submit" className="btn-hero">Submit</Button>
+                </form>
+              </CardContent>
+            </Card>
+          )}
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-background">
-        <main className="flex-1 p-6">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-8"
-          >
-            <h1 className="text-3xl font-bold text-foreground mb-2">
-              Peer Support Groups
-            </h1>
-            <p className="text-muted-foreground">
-              Connect with others who understand your journey and share experiences
-            </p>
-          </motion.div>
-
-          <div className="grid gap-6 lg:grid-cols-4">
-            {/* Groups List */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <Card className="wellness-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    Support Groups
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {supportGroups.map((group) => (
-                    <div
-                      key={group.id}
-                      className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                        activeGroup === group.id 
-                          ? 'border-primary bg-primary-soft' 
-                          : 'border-border hover:bg-accent/50'
-                      }`}
-                      onClick={() => setActiveGroup(group.id)}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-medium text-foreground text-sm">
-                          {group.name}
-                        </h4>
-                        {group.isJoined && (
-                          <Badge variant="default" className="text-xs">
-                            Joined
-                          </Badge>
-                        )}
-                      </div>
-                      
-                      <p className="text-xs text-muted-foreground mb-2">
-                        {group.description}
-                      </p>
-                      
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Users className="h-3 w-3" />
-                          {group.members}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Circle className="h-3 w-3 text-green-500 fill-current" />
-                          {group.online} online
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                  
-                  <Button variant="outline" className="w-full" size="sm">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Find More Groups
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            {/* Chat Area */}
+    <Dialog open={isCreateGroupOpen} onOpenChange={setIsCreateGroupOpen}>
+      <div className="min-h-screen bg-background">
+          <main className="flex-1 p-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="lg:col-span-2"
+              className="mb-8"
             >
-              <Card className="wellness-card h-[600px] flex flex-col">
-                <CardHeader className="border-b border-border">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <MessageCircle className="h-5 w-5" />
-                      {supportGroups.find(g => g.id === activeGroup)?.name}
-                    </CardTitle>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Circle className="h-4 w-4 text-green-500 fill-current" />
-                      32 online
-                    </div>
-                  </div>
-                </CardHeader>
-                
-                {/* Messages */}
-                <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
-                  {messages.map((message) => (
-                    <motion.div
-                      key={message.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="p-3 rounded-lg bg-accent/30 hover:bg-accent/50 transition-colors"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="text-2xl">{message.avatar}</div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-medium text-foreground text-sm">
-                              {message.user}
-                            </span>
-                            <span className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              {message.time}
-                            </span>
-                          </div>
-                          
-                          <p className="text-sm text-foreground mb-2">
-                            {message.message}
-                          </p>
-                          
-                          <div className="flex items-center gap-3">
-                            <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors">
-                              <Heart className="h-3 w-3" />
-                              {message.likes}
-                            </button>
-                            {message.replies && (
-                              <button className="text-xs text-muted-foreground hover:text-primary transition-colors">
-                                {message.replies} replies
-                              </button>
+              <h1 className="text-3xl font-bold text-foreground mb-2">
+                Peer Support Groups
+              </h1>
+              <p className="text-muted-foreground">
+                Welcome, {username}! Connect with others who understand your journey.
+              </p>
+            </motion.div>
+
+            <div className="grid gap-6 lg:grid-cols-3">
+                {/* Groups List */}
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="lg:col-span-1"
+                >
+                  <Card className="wellness-card h-[600px] flex flex-col">
+                    <CardHeader>
+                      <Tabs defaultValue="join" onValueChange={(value) => setCurrentView(value as 'join' | 'inbox')} className="w-full">
+                        <TabsList className="grid w-full grid-cols-2">
+                          <TabsTrigger value="join">
+                            <Users className="mr-2 h-4 w-4" /> All Groups
+                          </TabsTrigger>
+                          <TabsTrigger value="inbox">
+                            <MessageCircle className="mr-2 h-4 w-4" /> My Inbox
+                          </TabsTrigger>
+                        </TabsList>
+                      </Tabs>
+                    </CardHeader>
+                    <CardContent className="space-y-3 flex-1 overflow-y-auto pt-4">
+                      {supportGroups
+                        .filter(group => currentView === 'inbox' ? group.isJoined : true)
+                        .map((group) => (
+                        <div
+                          key={group.id}
+                          className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                            activeGroup === group.id 
+                              ? 'border-primary bg-primary-soft' 
+                              : 'border-border hover:bg-accent/50'
+                          }`}
+                          onClick={() => setActiveGroup(group.id)}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="font-medium text-foreground text-sm">
+                              {group.name}
+                            </h4>
+                            {group.isJoined ? (
+                              <Badge variant="default" className="text-xs">
+                                Joined
+                              </Badge>
+                            ) : (
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-6"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleJoinGroup(group.id);
+                                }}
+                              >
+                                Join
+                              </Button>
                             )}
                           </div>
+                          
+                          <p className="text-xs text-muted-foreground mb-2">
+                            {group.description}
+                          </p>
+                          
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Users className="h-3 w-3" />
+                              {group.members}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </CardContent>
-                
-                {/* Message Input */}
-                <div className="border-t border-border p-4">
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Share your thoughts with the group..."
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                      className="flex-1"
-                    />
-                    <Button onClick={handleSendMessage} className="btn-hero">
-                      <Send className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
+                      ))}
+                      
+                      <DialogTrigger asChild>
+                        <Button variant="outline" className="w-full" size="sm">
+                          <Plus className="mr-2 h-4 w-4" />
+                          Create Group
+                        </Button>
+                      </DialogTrigger>
+                    </CardContent>
+                  </Card>
+                </motion.div>
 
-            {/* Active Users & Guidelines */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 }}
-              className="space-y-6"
-            >
-              {/* Active Users */}
-              <Card className="wellness-card">
-                <CardHeader>
-                  <CardTitle className="text-sm">Online Members</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {activeUsers.map((user) => (
-                    <div key={user.name} className="flex items-center gap-2">
-                      <div className="text-lg">{user.avatar}</div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">
-                          {user.name}
-                        </p>
+                {/* Chat Area */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="lg:col-span-2"
+                >
+                  <Card className="wellness-card h-[600px] flex flex-col">
+                    <CardHeader className="border-b border-border">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="flex items-center gap-2">
+                          <MessageCircle className="h-5 w-5" />
+                          {supportGroups.find(g => g.id === activeGroup)?.name}
+                        </CardTitle>
                       </div>
-                      <div className={`w-2 h-2 rounded-full ${
-                        user.status === 'online' ? 'bg-green-500' : 'bg-yellow-500'
-                      }`} />
+                    </CardHeader>
+                    
+                    {/* Messages */}
+                    <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
+                      {messages.map((message) => (
+                        <motion.div
+                          key={message.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="p-3 rounded-lg bg-accent/30 hover:bg-accent/50 transition-colors"
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="text-2xl">{message.avatar}</div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-medium text-foreground text-sm">
+                                  {message.user}
+                                </span>
+                                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  {message.time}
+                                </span>
+                              </div>
+                              
+                              <p className="text-sm text-foreground mb-2">
+                                {message.message}
+                              </p>
+                              
+                              <div className="flex items-center gap-3">
+                                <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors">
+                                  <Heart className="h-3 w-3" />
+                                  {message.likes}
+                                </button>
+                                {message.replies && (
+                                  <button className="text-xs text-muted-foreground hover:text-primary transition-colors">
+                                    {message.replies} replies
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </CardContent>
+                    
+                    {/* Message Input */}
+                    <div className="border-t border-border p-4">
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Share your thoughts with the group..."
+                          value={newMessage}
+                          onChange={(e) => setNewMessage(e.target.value)}
+                          onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                          className="flex-1"
+                        />
+                        <Button onClick={handleSendMessage} className="btn-hero">
+                          <Send className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                  ))}
-                </CardContent>
-              </Card>
-
-              {/* Community Guidelines */}
-              <Card className="wellness-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-sm">
-                    <Shield className="h-4 w-4" />
-                    Guidelines
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2 text-xs text-muted-foreground">
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary">•</span>
-                      Be respectful and supportive
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary">•</span>
-                      No personal attacks or judgment
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary">•</span>
-                      Keep discussions constructive
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary">•</span>
-                      Respect privacy and confidentiality
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary">•</span>
-                      Use trigger warnings when needed
-                    </li>
-                  </ul>
-                </CardContent>
-              </Card>
-
-              {/* Crisis Support */}
-              <Card className="wellness-card border-2 border-primary/20 bg-primary-soft">
-                <CardContent className="p-4 text-center">
-                  <div className="text-2xl mb-2">🆘</div>
-                  <p className="text-sm font-medium text-primary mb-2">
-                    Need immediate help?
-                  </p>
-                  <p className="text-xs text-muted-foreground mb-3">
-                    If you're in crisis, please reach out for professional support
-                  </p>
-                  <Button size="sm" variant="outline" className="w-full">
-                    Crisis Resources
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
+                  </Card>
+                </motion.div>
+              </div>
+          </main>
+      </div>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Create a New Support Group</DialogTitle>
+          <DialogDescription>
+            Fill in the details below to create a new space for connection.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="name" className="text-right">
+              Name
+            </Label>
+            <Input
+              id="name"
+              value={newGroupName}
+              onChange={(e) => setNewGroupName(e.target.value)}
+              className="col-span-3"
+              placeholder="e.g., Creative Minds"
+            />
           </div>
-        </main>
-    </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="description" className="text-right">
+              Description
+            </Label>
+            <Textarea
+              id="description"
+              value={newGroupDescription}
+              onChange={(e) => setNewGroupDescription(e.target.value)}
+              className="col-span-3"
+              placeholder="A short description of your group's purpose."
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button type="submit" onClick={handleCreateGroup}>Create Group</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

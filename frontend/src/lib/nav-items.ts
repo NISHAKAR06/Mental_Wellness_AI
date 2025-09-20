@@ -53,13 +53,6 @@ export const sidebarItems = [
     description: 'Community support'
   },
   {
-    icon: Activity,
-    label: 'Lifestyle Tools',
-    path: '/dashboard/lifestyle',
-    translationKey: 'features.lifestyle',
-    description: 'Health tracking'
-  },
-  {
     icon: Settings,
     label: 'Settings',
     path: '/dashboard/settings',

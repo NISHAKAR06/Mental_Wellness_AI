@@ -16,7 +16,6 @@ import SessionSummarizer from "./pages/features/SessionSummarizer";
 import AiGaming from "./pages/features/AiGaming";
 import PeerSupport from "./pages/features/PeerSupport";
 import Multilingual from "./pages/features/Multilingual";
-import Lifestyle from "./pages/features/Lifestyle";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import SessionGuidelines from "./pages/SessionGuidelines";
@@ -44,7 +43,6 @@ const App = () => (
                   <Route path="/dashboard/ai-gaming" element={<AiGaming />} />
                   <Route path="/dashboard/peer-support" element={<PeerSupport />} />
                   <Route path="/dashboard/multilingual" element={<Multilingual />} />
-                  <Route path="/dashboard/lifestyle" element={<Lifestyle />} />
                   <Route path="/dashboard/settings" element={<Settings />} />
                 </Route>
                 <Route path="/session-guidelines" element={<SessionGuidelines />} />

@@ -87,7 +87,7 @@ export default function Dashboard() {
           >
             <Card className="wellness-card text-center">
               <CardContent className="pt-6">
-                <div className="text-3xl font-bold text-primary mb-2">6</div>
+                <div className="text-3xl font-bold text-primary mb-2">5</div>
                 <p className="text-sm text-muted-foreground">Tools Available</p>
               </CardContent>
             </Card>
