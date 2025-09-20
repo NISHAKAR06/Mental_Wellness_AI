@@ -8,6 +8,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useState } from 'react';
@@ -18,7 +19,7 @@ interface HeaderProps {
 }
 
 export function Header({ onMenuClick }: HeaderProps) {
-  const { theme, toggleTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -94,7 +95,7 @@ export function Header({ onMenuClick }: HeaderProps) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={toggleTheme}
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             className="gap-2"
           >
             {theme === 'dark' ? (
@@ -119,6 +120,10 @@ export function Header({ onMenuClick }: HeaderProps) {
                 <DropdownMenuItem onClick={() => navigate('/dashboard')}>
                   {t('nav.dashboard')}
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/dashboard/settings')}>
+                  {t('nav.settings')}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>
                   {t('nav.logout')}
                 </DropdownMenuItem>
