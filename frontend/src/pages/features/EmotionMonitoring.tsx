@@ -15,9 +15,115 @@ import {
   Frown,
 } from "lucide-react";
 
+// AIInsights Component
+const AIInsights = ({
+  emotions,
+  voiceStress,
+  facialTension,
+}: {
+  emotions: Array<{ name: string; value: number; color: string; icon: any }>;
+  voiceStress: { value: string; status: string; color: string };
+  facialTension: { value: string; status: string; color: string };
+}) => {
+  // Analyze emotional state and generate insights
+  const analyzeEmotions = () => {
+    const dominantEmotion = emotions.reduce((prev, current) =>
+      prev.value > current.value ? prev : current
+    );
+
+    const happiness = emotions.find(e => e.name === "Happy")?.value || 0;
+    const anxiety = emotions.find(e => e.name === "Anxious")?.value || 0;
+    const stress = emotions.find(e => e.name === "Stressed")?.value || 0;
+
+    // Overall wellbeing assessment
+    let wellbeing = "Neutral";
+    let emoji = "😐";
+    let color = "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800";
+    let titleColor = "text-blue-800 dark:text-blue-400";
+
+    if (happiness > 60 && anxiety < 20 && stress < 20) {
+      wellbeing = "Excellent";
+      emoji = "😊";
+      color = "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800";
+      titleColor = "text-green-800 dark:text-green-400";
+    } else if (anxiety > 40 || stress > 40) {
+      wellbeing = "Needs Attention";
+      emoji = "😟";
+      color = "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800";
+      titleColor = "text-red-800 dark:text-red-400";
+    } else if (happiness > 40) {
+      wellbeing = "Good";
+      emoji = "😊";
+      color = "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800";
+      titleColor = "text-green-800 dark:text-green-400";
+    }
+
+    // Generate personalized insights
+    let insights = "";
+    let recommendations = [];
+
+    if (voiceStress.value === "Medium" || voiceStress.value === "High" || voiceStress.value === "Very High") {
+      insights += "Your voice analysis shows elevated stress levels. ";
+      recommendations.push("Try deep breathing exercises to calm your vocal tension.");
+    }
+
+    if (facialTension.value === "High" || facialTension.value === "Very High") {
+      insights += "Facial tension detected suggests physical stress. ";
+      recommendations.push("Practice face relaxation exercises to release muscle tension.");
+    }
+
+    if (dominantEmotion.name === "Happy" && happiness > 50) {
+      insights += "Strong positive emotions detected! ";
+      recommendations.push("Keep engaging in whatever is making you feel this good!");
+    }
+
+    if (dominantEmotion.name === "Anxious" || dominantEmotion.name === "Stressed") {
+      insights += "Stress indicators suggest you might benefit from relaxation techniques. ";
+      recommendations.push("Consider taking a short break or practicing mindfulness.");
+    }
+
+    if (recommendations.length === 0) {
+      recommendations.push("Your emotional state appears balanced and stable.");
+    }
+
+    return { wellbeing, emoji, color, titleColor, insights, recommendations };
+  };
+
+  const analysis = analyzeEmotions();
+
+  return (
+    <div className="space-y-3 text-sm">
+      <div className={`p-3 rounded-lg ${analysis.color} border`}>
+        <p className={`font-medium ${analysis.titleColor} mb-1`}>
+          Overall Wellbeing: {analysis.wellbeing} {analysis.emoji}
+        </p>
+        <p className={`text-sm ${analysis.titleColor.replace('text-', 'text-').replace('-800', '-700').replace('-400', '-300')}`}>
+          {analysis.insights || "Your emotional state appears balanced and stable."}
+        </p>
+      </div>
+
+      <div className="p-3 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
+        <p className="font-medium text-orange-800 dark:text-orange-400 mb-1">
+          Recommendation
+        </p>
+        <ul className="text-orange-700 dark:text-orange-300 text-sm">
+          {analysis.recommendations.map((rec, index) => (
+            <li key={index} className="mb-1">• {rec}</li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+};
+
 export default function EmotionMonitoring() {
   const [isMonitoring, setIsMonitoring] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [voiceAnalysis, setVoiceAnalysis] = useState({
+    stress_level: 0,
+    facial_anxious: 0,
+    facial_stressed: 0
+  });
   const [emotions, setEmotions] = useState([
     { name: "Happy", value: 0, color: "bg-green-500", icon: Smile },
     { name: "Neutral", value: 0, color: "bg-yellow-500", icon: Meh },
@@ -61,29 +167,11 @@ export default function EmotionMonitoring() {
 
   useEffect(() => {
     if (isMonitoring) {
-      startVideo();
       const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       const wsUrl = `${wsProtocol}//${window.location.host}/ws/emotions/`;
       ws.current = new WebSocket(wsUrl);
 
-      mediaRecorderRef.current = new MediaRecorder(
-        videoRef.current.srcObject as MediaStream
-      );
-      mediaRecorderRef.current.ondataavailable = (event) => {
-        if (
-          event.data.size > 0 &&
-          ws.current &&
-          ws.current.readyState === WebSocket.OPEN
-        ) {
-          const reader = new FileReader();
-          reader.onload = () => {
-            const base64Audio = (reader.result as string).split(",")[1];
-            ws.current?.send(JSON.stringify({ audio: base64Audio }));
-          };
-          reader.readAsDataURL(event.data);
-        }
-      };
-      mediaRecorderRef.current.start(1000); // Send audio data every second
+      startVideo(); // Start video after WebSocket is set up
 
       ws.current.onmessage = (event) => {
         const data = JSON.parse(event.data);
@@ -111,6 +199,9 @@ export default function EmotionMonitoring() {
             },
           ]);
         }
+        if (data.voice_analysis) {
+          setVoiceAnalysis(data.voice_analysis);
+        }
       };
 
       return () => {
@@ -130,6 +221,30 @@ export default function EmotionMonitoring() {
       };
     }
   }, [isMonitoring]);
+
+  // Separate useEffect for MediaRecorder initialization
+  useEffect(() => {
+    if (ws.current && isMonitoring && videoRef.current?.srcObject) {
+      mediaRecorderRef.current = new MediaRecorder(
+        videoRef.current.srcObject as MediaStream
+      );
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        if (
+          event.data.size > 0 &&
+          ws.current &&
+          ws.current.readyState === WebSocket.OPEN
+        ) {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const base64Audio = (reader.result as string).split(",")[1];
+            ws.current.send(JSON.stringify({ audio: base64Audio }));
+          };
+          reader.readAsDataURL(event.data);
+        }
+      };
+      mediaRecorderRef.current.start(1000); // Send audio data every second
+    }
+  }, [isMonitoring, videoRef.current?.srcObject]);
 
   useEffect(() => {
     if (isMonitoring && videoRef.current) {
@@ -160,24 +275,38 @@ export default function EmotionMonitoring() {
     };
   }, [isMonitoring]);
 
+  // Calculate vital signs from voice analysis data
+  const getVoiceStressLevel = () => {
+    const stress = voiceAnalysis.stress_level;
+    if (stress < 25) return { value: "Low", status: "Calm", color: "text-green-600" };
+    if (stress < 50) return { value: "Medium", status: "Moderate", color: "text-yellow-600" };
+    if (stress < 75) return { value: "High", status: "Elevated", color: "text-orange-600" };
+    return { value: "Very High", status: "Critical", color: "text-red-600" };
+  };
+
+  const getFacialTensionLevel = () => {
+    const facialStress = Math.max(voiceAnalysis.facial_anxious, voiceAnalysis.facial_stressed);
+    if (facialStress < 25) return { value: "Minimal", status: "Relaxed", color: "text-green-600" };
+    if (facialStress < 50) return { value: "Moderate", status: "Normal", color: "text-blue-600" };
+    if (facialStress < 75) return { value: "High", status: "Tensed", color: "text-orange-600" };
+    return { value: "Very High", status: "Stressed", color: "text-red-600" };
+  };
+
+  const voiceStress = getVoiceStressLevel();
+  const facialTension = getFacialTensionLevel();
+
   const vitalSigns = [
     {
-      name: "Heart Rate",
-      value: "72 BPM",
-      status: "Normal",
-      color: "text-green-600",
-    },
-    {
       name: "Voice Stress",
-      value: "Low",
-      status: "Calm",
-      color: "text-blue-600",
+      value: voiceStress.value,
+      status: voiceStress.status,
+      color: voiceStress.color,
     },
     {
       name: "Facial Tension",
-      value: "Minimal",
-      status: "Relaxed",
-      color: "text-green-600",
+      value: facialTension.value,
+      status: facialTension.status,
+      color: facialTension.color,
     },
   ];
 
@@ -358,27 +487,11 @@ export default function EmotionMonitoring() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3 text-sm">
-                    <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
-                      <p className="font-medium text-green-800 dark:text-green-400 mb-1">
-                        Overall Wellbeing: Good 😊
-                      </p>
-                      <p className="text-green-700 dark:text-green-300">
-                        Your emotional state appears stable and positive. Keep
-                        up the good work!
-                      </p>
-                    </div>
-
-                    <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                      <p className="font-medium text-blue-800 dark:text-blue-400 mb-1">
-                        Recommendation
-                      </p>
-                      <p className="text-blue-700 dark:text-blue-300">
-                        Consider practicing deep breathing exercises to maintain
-                        this positive state.
-                      </p>
-                    </div>
-                  </div>
+                  <AIInsights
+                    emotions={emotions}
+                    voiceStress={voiceStress}
+                    facialTension={facialTension}
+                  />
                 </CardContent>
               </Card>
             </motion.div>
