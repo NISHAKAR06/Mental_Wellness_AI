@@ -27,3 +27,4 @@ dist-ssr
 __pycache__/
 env/
 .env
+/backend/db.sqlite3/

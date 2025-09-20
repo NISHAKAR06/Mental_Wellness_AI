@@ -5,7 +5,6 @@ import base64
 from channels.generic.websocket import AsyncWebsocketConsumer
 from .models import EmotionData
 from channels.db import database_sync_to_async
-import face_recognition
 from deepface import DeepFace
 
 class EmotionConsumer(AsyncWebsocketConsumer):
@@ -15,7 +14,7 @@ class EmotionConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         pass
 
-    async def receive(self, text_data):
+    async def receive(self, text_data): 
         text_data_json = json.loads(text_data)
         image_data = text_data_json['image']
 
@@ -27,7 +26,7 @@ class EmotionConsumer(AsyncWebsocketConsumer):
 
         # Analyze emotions using DeepFace
         try:
-            analysis = DeepFace.analyze(img, actions=['emotion'], enforce_detection=False)
+            analysis = DeepFace.analyze(img, actions=['emotion'], detector_backend='mtcnn', enforce_detection=False)
             emotions = analysis[0]['emotion']
             
             happy = emotions.get('happy', 0)
@@ -40,10 +39,10 @@ class EmotionConsumer(AsyncWebsocketConsumer):
                 total = 1 
 
             processed_emotions = {
-                'happy': (happy / total) * 100,
-                'neutral': (neutral / total) * 100,
-                'anxious': (anxious / total) * 100,
-                'stressed': (stressed / total) * 100,
+                'happy': float((happy / total) * 100),
+                'neutral': float((neutral / total) * 100),
+                'anxious': float((anxious / total) * 100),
+                'stressed': float((stressed / total) * 100),
             }
 
             await self.save_emotions(processed_emotions)
