@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,9 +13,28 @@ import {
   Zap,
   Star
 } from 'lucide-react';
+import CognitiveReframingCards from './games/CognitiveReframingCards';
+import MindfulBreathingQuest from './games/MindfulBreathingQuest';
+import MindfulMaze from './games/MindfulMaze';
+import PatternPainter from './games/PatternPainter';
 
 export default function AiGaming() {
   const [currentGame, setCurrentGame] = useState(null);
+  const gameRef = useRef<HTMLDivElement>(null);
+  const topRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (currentGame && gameRef.current) {
+      gameRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [currentGame]);
+
+  const handleCloseGame = () => {
+    if (topRef.current) {
+      topRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+    setCurrentGame(null);
+  };
 
   const games = [
     {
@@ -27,53 +46,50 @@ export default function AiGaming() {
       icon: '🌬️',
       color: 'from-blue-500 to-cyan-500',
       progress: 75,
-      completed: false
+      completed: false,
+      component: MindfulBreathingQuest
     },
     {
       id: 2,
-      title: 'Emotion Detective',
-      description: 'Identify and understand different emotions in various scenarios',
+      title: 'Cognitive Reframing',
+      description: 'Challenge negative thoughts and find positive perspectives.',
       difficulty: 'Intermediate',
-      category: 'Emotional Intelligence',
-      icon: '🕵️',
+      category: 'CBT',
+      icon: '🔄',
       color: 'from-purple-500 to-pink-500',
       progress: 45,
-      completed: false
+      completed: false,
+      component: CognitiveReframingCards
     },
     {
       id: 3,
-      title: 'Stress Buster Arena',
-      description: 'Battle stress monsters using coping strategies and positive thoughts',
-      difficulty: 'Advanced',
-      category: 'Stress Management',
-      icon: '⚔️',
+      title: 'Mindful Maze',
+      description: 'Navigate a maze using mindfulness and focus.',
+      difficulty: 'Intermediate',
+      category: 'Focus',
+      icon: '🗺️',
       color: 'from-red-500 to-orange-500',
-      progress: 100,
-      completed: true
+      progress: 10,
+      completed: false,
+      component: MindfulMaze
     },
     {
       id: 4,
-      title: 'Gratitude Garden',
-      description: 'Grow a beautiful garden by practicing gratitude and positive thinking',
+      title: 'Pattern Painter',
+      description: 'Create beautiful patterns while practicing mindfulness.',
       difficulty: 'Beginner',
-      category: 'Positivity',
-      icon: '🌱',
+      category: 'Creativity',
+      icon: '🎨',
       color: 'from-green-500 to-emerald-500',
       progress: 20,
-      completed: false
+      completed: false,
+      component: PatternPainter
     }
-  ];
-
-  const achievements = [
-    { name: 'First Steps', description: 'Complete your first game', earned: true },
-    { name: 'Mindful Master', description: 'Complete 5 breathing exercises', earned: true },
-    { name: 'Emotion Expert', description: 'Identify 20 different emotions', earned: false },
-    { name: 'Stress Warrior', description: 'Win 10 stress battles', earned: false }
   ];
 
   return (
     <div className="min-h-screen bg-background">
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-6" ref={topRef}>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -87,15 +103,15 @@ export default function AiGaming() {
             </p>
           </motion.div>
 
-          <div className="grid gap-6 lg:grid-cols-3">
+          <div className="grid gap-6">
             {/* Games Grid */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 }}
-              className="lg:col-span-2 space-y-6"
+              className="space-y-6"
             >
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
                 {games.map((game, index) => (
                   <motion.div
                     key={game.id}
@@ -103,8 +119,8 @@ export default function AiGaming() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
                   >
-                    <Card className="wellness-card group cursor-pointer hover:border-primary/20">
-                      <CardContent className="p-6">
+                    <Card className="wellness-card group cursor-pointer hover:border-primary/20 h-full flex flex-col">
+                      <CardContent className="p-6 flex flex-col flex-grow">
                         <div className={`w-16 h-16 rounded-xl bg-gradient-to-r ${game.color} flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform`}>
                           {game.icon}
                         </div>
@@ -113,7 +129,7 @@ export default function AiGaming() {
                           {game.title}
                         </h3>
                         
-                        <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                        <p className="text-sm text-muted-foreground mb-4 line-clamp-2 flex-grow">
                           {game.description}
                         </p>
                         
@@ -126,16 +142,8 @@ export default function AiGaming() {
                           </span>
                         </div>
                         
-                        <div className="mb-4">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs text-muted-foreground">Progress</span>
-                            <span className="text-xs font-medium">{game.progress}%</span>
-                          </div>
-                          <Progress value={game.progress} className="h-2" />
-                        </div>
-                        
                         <Button 
-                          className={`w-full ${game.completed ? 'bg-green-600 hover:bg-green-700' : 'btn-hero'}`}
+                          className={`w-full mt-auto ${game.completed ? 'bg-green-600 hover:bg-green-700' : 'btn-hero'}`}
                           onClick={() => setCurrentGame(game)}
                         >
                           {game.completed ? (
@@ -146,7 +154,7 @@ export default function AiGaming() {
                           ) : (
                             <>
                               <Play className="mr-2 h-4 w-4" />
-                              {game.progress > 0 ? 'Continue' : 'Start Game'}
+                              Play Now
                             </>
                           )}
                         </Button>
@@ -159,6 +167,7 @@ export default function AiGaming() {
               {/* Game Demo */}
               {currentGame && (
                 <motion.div
+                  ref={gameRef}
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                 >
@@ -171,25 +180,13 @@ export default function AiGaming() {
                     </CardHeader>
                     <CardContent>
                       <div className="aspect-video rounded-xl bg-gradient-to-br from-primary-soft to-accent flex items-center justify-center mb-4">
-                        <div className="text-center">
-                          <div className="text-6xl mb-4">{currentGame.icon}</div>
-                          <p className="text-lg font-medium text-foreground mb-2">
-                            Game Loading...
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {currentGame.description}
-                          </p>
-                        </div>
+                        <currentGame.component />
                       </div>
                       
                       <div className="flex gap-2">
-                        <Button className="btn-hero flex-1">
-                          <Play className="mr-2 h-4 w-4" />
-                          Start Playing
-                        </Button>
                         <Button 
                           variant="outline" 
-                          onClick={() => setCurrentGame(null)}
+                          onClick={handleCloseGame}
                         >
                           Close
                         </Button>
@@ -198,101 +195,6 @@ export default function AiGaming() {
                   </Card>
                 </motion.div>
               )}
-            </motion.div>
-
-            {/* Sidebar Content */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-              className="space-y-6"
-            >
-              {/* Player Stats */}
-              <Card className="wellness-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Target className="h-5 w-5" />
-                    Your Stats
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="text-center p-4 rounded-lg bg-primary-soft">
-                    <div className="text-3xl font-bold text-primary mb-1">1,247</div>
-                    <p className="text-sm text-muted-foreground">Total Points</p>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4 text-center">
-                    <div className="p-3 rounded-lg bg-accent/30">
-                      <Heart className="h-6 w-6 text-red-500 mx-auto mb-1" />
-                      <div className="font-bold text-foreground">85%</div>
-                      <p className="text-xs text-muted-foreground">Wellness Score</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-accent/30">
-                      <Zap className="h-6 w-6 text-yellow-500 mx-auto mb-1" />
-                      <div className="font-bold text-foreground">7</div>
-                      <p className="text-xs text-muted-foreground">Day Streak</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Achievements */}
-              <Card className="wellness-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Trophy className="h-5 w-5" />
-                    Achievements
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {achievements.map((achievement) => (
-                      <div
-                        key={achievement.name}
-                        className={`flex items-center gap-3 p-3 rounded-lg ${
-                          achievement.earned 
-                            ? 'bg-primary-soft border border-primary/20' 
-                            : 'bg-accent/30 opacity-60'
-                        }`}
-                      >
-                        <Star className={`h-5 w-5 ${achievement.earned ? 'text-primary' : 'text-muted-foreground'}`} />
-                        <div>
-                          <p className="font-medium text-foreground text-sm">
-                            {achievement.name}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {achievement.description}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Daily Challenge */}
-              <Card className="wellness-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Brain className="h-5 w-5" />
-                    Daily Challenge
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center p-4 rounded-lg bg-gradient-to-r from-primary-soft to-accent">
-                    <div className="text-2xl mb-2">🎯</div>
-                    <p className="font-medium text-foreground mb-1">
-                      Practice Gratitude
-                    </p>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      List 3 things you're grateful for today
-                    </p>
-                    <Button size="sm" className="btn-hero">
-                      Start Challenge
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
             </motion.div>
           </div>
         </main>
