@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -16,13 +17,14 @@ import {
 } from 'lucide-react';
 
 export default function EmotionMonitoring() {
+  const { t } = useLanguage();
   const [isMonitoring, setIsMonitoring] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [emotions, setEmotions] = useState([
-    { name: 'Happy', value: 0, color: 'bg-green-500', icon: Smile },
-    { name: 'Neutral', value: 0, color: 'bg-yellow-500', icon: Meh },
-    { name: 'Anxious', value: 0, color: 'bg-orange-500', icon: Frown },
-    { name: 'Stressed', value: 0, color: 'bg-red-500', icon: Frown }
+    { name: t('emotionmonitoring.happyclear'), value: 0, color: 'bg-green-500', icon: Smile },
+    { name: t('emotionmonitoring.neutral'), value: 0, color: 'bg-yellow-500', icon: Meh },
+    { name: t('emotionmonitoring.anxious'), value: 0, color: 'bg-orange-500', icon: Frown },
+    { name: t('emotionmonitoring.stressed'), value: 0, color: 'bg-red-500', icon: Frown }
   ]);
   const videoRef = useRef<HTMLVideoElement>(null);
   const intervalRef = useRef<NodeJS.Timeout>();
@@ -38,7 +40,7 @@ export default function EmotionMonitoring() {
       })
       .catch((err) => {
         console.error(err);
-        setError('Camera permission denied. Please allow camera access to use this feature.');
+        setError(t('emotionmonitoring.camera_permission'));
         setIsMonitoring(false);
       });
   };
@@ -63,10 +65,10 @@ export default function EmotionMonitoring() {
           if (data.emotions) {
             const { happy, neutral, anxious, stressed } = data.emotions;
             setEmotions([
-              { name: 'Happy', value: happy, color: 'bg-green-500', icon: Smile },
-              { name: 'Neutral', value: neutral, color: 'bg-yellow-500', icon: Meh },
-              { name: 'Anxious', value: anxious, color: 'bg-orange-500', icon: Frown },
-              { name: 'Stressed', value: stressed, color: 'bg-red-500', icon: Frown }
+              { name: t('emotionmonitoring.happyclear'), value: happy, color: 'bg-green-500', icon: Smile },
+              { name: t('emotionmonitoring.neutral'), value: neutral, color: 'bg-yellow-500', icon: Meh },
+              { name: t('emotionmonitoring.anxious'), value: anxious, color: 'bg-orange-500', icon: Frown },
+              { name: t('emotionmonitoring.stressed'), value: stressed, color: 'bg-red-500', icon: Frown }
             ]);
           }
         };
@@ -79,10 +81,10 @@ export default function EmotionMonitoring() {
           ws.current.close();
         }
         setEmotions([
-          { name: 'Happy', value: 0, color: 'bg-green-500', icon: Smile },
-          { name: 'Neutral', value: 0, color: 'bg-yellow-500', icon: Meh },
-          { name: 'Anxious', value: 0, color: 'bg-orange-500', icon: Frown },
-          { name: 'Stressed', value: 0, color: 'bg-red-500', icon: Frown }
+          { name: t('emotionmonitoring.happyclear'), value: 0, color: 'bg-green-500', icon: Smile },
+          { name: t('emotionmonitoring.neutral'), value: 0, color: 'bg-yellow-500', icon: Meh },
+          { name: t('emotionmonitoring.anxious'), value: 0, color: 'bg-orange-500', icon: Frown },
+          { name: t('emotionmonitoring.stressed'), value: 0, color: 'bg-red-500', icon: Frown }
         ]);
       }
       return !prev;
@@ -114,9 +116,9 @@ export default function EmotionMonitoring() {
   }, [isMonitoring]);
 
   const vitalSigns = [
-    { name: 'Heart Rate', value: '72 BPM', status: 'Normal', color: 'text-green-600' },
-    { name: 'Voice Stress', value: 'Low', status: 'Calm', color: 'text-blue-600' },
-    { name: 'Facial Tension', value: 'Minimal', status: 'Relaxed', color: 'text-green-600' }
+    { name: t('emotionmonitoring.heart_rate'), value: '72 BPM', status: t('emotionmonitoring.normal'), color: 'text-green-600' },
+    { name: t('emotionmonitoring.voice_stress'), value: t('emotionmonitoring.low'), status: t('emotionmonitoring.calm'), color: 'text-blue-600' },
+    { name: t('emotionmonitoring.facial_tension'), value: t('emotionmonitoring.minimal'), status: t('emotionmonitoring.relaxed'), color: 'text-green-600' }
   ];
 
   return (
@@ -128,10 +130,10 @@ export default function EmotionMonitoring() {
           className="mb-8"
         >
           <h1 className="text-3xl font-bold text-foreground mb-2">
-            AI Emotion Monitoring
+            {t('emotionmonitoring.title')}
           </h1>
           <p className="text-muted-foreground">
-            Real-time analysis of your emotional state using facial recognition and voice analysis
+            {t('emotionmonitoring.subtitle')}
           </p>
           <Button
             className={`mt-4 ${isMonitoring ? 'bg-destructive hover:bg-destructive/90' : 'btn-hero'}`}
@@ -139,12 +141,12 @@ export default function EmotionMonitoring() {
           >
             {isMonitoring ? (
               <>
-                Stop Monitoring
+                {t('emotionmonitoring.stop_monitoring')}
               </>
             ) : (
               <>
                 <Activity className="mr-2 h-4 w-4" />
-                Start Monitoring
+                {t('emotionmonitoring.start_monitoring')}
               </>
             )}
           </Button>
@@ -163,7 +165,7 @@ export default function EmotionMonitoring() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Camera className="h-5 w-5" />
-                    Video Feed
+                    {t('emotionmonitoring.video_feed')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -177,12 +179,12 @@ export default function EmotionMonitoring() {
                   >
                     {isMonitoring ? (
                       <>
-                        Stop Monitoring
+                        {t('emotionmonitoring.stop_monitoring')}
                       </>
                     ) : (
                       <>
                         <Activity className="mr-2 h-4 w-4" />
-                        Start Monitoring
+                        {t('emotionmonitoring.start_monitoring')}
                       </>
                     )}
                   </Button>
@@ -199,7 +201,7 @@ export default function EmotionMonitoring() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Heart className="h-5 w-5" />
-                    Vital Indicators
+                    {t('emotionmonitoring.vital_indicators')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -233,7 +235,7 @@ export default function EmotionMonitoring() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Smile className="h-5 w-5" />
-                    Emotion Analysis
+                    {t('emotionmonitoring.emotion_analysis')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -271,26 +273,26 @@ export default function EmotionMonitoring() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <TrendingUp className="h-5 w-5" />
-                    AI Insights
+                    {t('emotionmonitoring.ai_insights')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3 text-sm">
                     <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
                       <p className="font-medium text-green-800 dark:text-green-400 mb-1">
-                        Overall Wellbeing: Good 😊
+                        {t('emotionmonitoring.overall_wellbeing')}: {t('emotionmonitoring.good')} 😊
                       </p>
                       <p className="text-green-700 dark:text-green-300">
-                        Your emotional state appears stable and positive. Keep up the good work!
+                        {t('emotionmonitoring.stable_message')}
                       </p>
                     </div>
-                    
+
                     <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
                       <p className="font-medium text-blue-800 dark:text-blue-400 mb-1">
-                        Recommendation
+                        {t('emotionmonitoring.recommendation')}
                       </p>
                       <p className="text-blue-700 dark:text-blue-300">
-                        Consider practicing deep breathing exercises to maintain this positive state.
+                        {t('emotionmonitoring.breathing_recommendation')}
                       </p>
                     </div>
                   </div>

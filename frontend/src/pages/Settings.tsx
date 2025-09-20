@@ -106,9 +106,9 @@ export default function Settings() {
                       <SelectValue placeholder="Select a language" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="en">English</SelectItem>
-                      <SelectItem value="ta">Tamil</SelectItem>
-                      <SelectItem value="hi">Hindi</SelectItem>
+                      <SelectItem value="en">{t('settings.language.en')}</SelectItem>
+                      <SelectItem value="ta">{t('settings.language.ta')}</SelectItem>
+                      <SelectItem value="hi">{t('settings.language.hi')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

@@ -33,7 +33,7 @@ export default function Dashboard() {
               </motion.div>
               
               <h1 className="mb-2 text-2xl font-bold text-foreground md:text-3xl">
-                Welcome back, {user?.name}! 👋
+                {t('dashboard.welcome_back').replace('{name}', user?.name || 'User')}
               </h1>
               
               <p className="text-lg text-muted-foreground mb-4">
@@ -49,7 +49,7 @@ export default function Dashboard() {
           {/* Features Grid */}
           <div className="mb-8">
             <h2 className="mb-6 text-xl font-semibold text-foreground">
-              Your Wellness Tools
+              {t('dashboard.tools_title')}
             </h2>
             
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -68,7 +68,7 @@ export default function Dashboard() {
                       </CardHeader>
                       <CardContent>
                         <p className="text-sm text-muted-foreground">
-                          {feature.description}
+                          {t(`${feature.translationKey}_desc`)}
                         </p>
                       </CardContent>
                     </Card>
@@ -88,21 +88,21 @@ export default function Dashboard() {
             <Card className="wellness-card text-center">
               <CardContent className="pt-6">
                 <div className="text-3xl font-bold text-primary mb-2">5</div>
-                <p className="text-sm text-muted-foreground">Tools Available</p>
+                <p className="text-sm text-muted-foreground">{t('dashboard.stats_tools')}</p>
               </CardContent>
             </Card>
             
             <Card className="wellness-card text-center">
               <CardContent className="pt-6">
                 <div className="text-3xl font-bold text-primary mb-2">24/7</div>
-                <p className="text-sm text-muted-foreground">AI Support</p>
+                <p className="text-sm text-muted-foreground">{t('dashboard.stats_support')}</p>
               </CardContent>
             </Card>
             
             <Card className="wellness-card text-center">
               <CardContent className="pt-6">
                 <div className="text-3xl font-bold text-primary mb-2">∞</div>
-                <p className="text-sm text-muted-foreground">Possibilities</p>
+                <p className="text-sm text-muted-foreground">{t('dashboard.stats_possibilities')}</p>
               </CardContent>
             </Card>
           </motion.div>

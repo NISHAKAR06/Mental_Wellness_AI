@@ -96,8 +96,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 className="overflow-hidden"
               >
                 <div className="text-center">
-                  <h1 className="text-lg font-bold">Mental Wellness Hub</h1>
-                  <p className="text-xs text-muted-foreground mt-0.5">your AI-powered wellness companion</p>
+                  <h1 className="text-lg font-bold">{t('sidebar.title')}</h1>
+                  <p className="text-xs text-muted-foreground mt-0.5">{t('sidebar.subtitle')}</p>
                 </div>
               </motion.div>
             )}
@@ -162,10 +162,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                           className="flex-1 overflow-hidden"
                         >
                           <span className="text-sm font-medium block whitespace-nowrap">
-                            {item.label}
+                            {t(item.translationKey)}
                           </span>
                           <p className="text-xs text-muted-foreground mt-0.5 whitespace-nowrap">
-                              {item.description}
+                              {t(item.translationKey + '_desc')}
                             </p>
                           </motion.div>
                         )}
@@ -212,10 +212,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                           className="flex-1 overflow-hidden"
                         >
                           <span className="text-sm font-medium block whitespace-nowrap">
-                            {settingsNavItem.label}
+                            {t(settingsNavItem.translationKey)}
                           </span>
                           <p className="text-xs text-muted-foreground mt-0.5 whitespace-nowrap">
-                          {settingsNavItem.description}
+                          {t(settingsNavItem.translationKey + '_desc') || settingsNavItem.description}
                         </p>
                       </motion.div>
                     )}
@@ -238,10 +238,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             >
               <div className="rounded-lg bg-primary-soft p-3 text-center">
                 <p className="text-xs text-primary">
-                  🌟 Your mental health matters
+                  {t('sidebar.footer_main')}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Take it one day at a time
+                  {t('sidebar.footer_sub')}
                 </p>
               </div>
             </motion.div>

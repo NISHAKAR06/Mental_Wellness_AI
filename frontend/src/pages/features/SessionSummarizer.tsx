@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react';
 
 export default function SessionSummarizer() {
+  const { t } = useLanguage();
   const [sessionNotes, setSessionNotes] = useState(
     "Patient discussed feelings of anxiety related to work deadlines. We explored cognitive reframing techniques to challenge negative thought patterns. Patient reported difficulty with sleep, waking up multiple times during the night. We discussed sleep hygiene strategies, such as creating a relaxing bedtime routine and avoiding screens before bed. Patient also mentioned feeling a lack of motivation for hobbies they used to enjoy. We brainstormed small, manageable steps to re-engage with these activities. The patient expressed a desire to work on self-compassion and reducing self-criticism."
   );
@@ -27,20 +29,20 @@ export default function SessionSummarizer() {
     {
       id: 1,
       date: '2024-01-15',
-      therapist: 'Dr. Sarah Johnson',
-      duration: '50 minutes',
-      keyTopics: ['Anxiety Management', 'Coping Strategies', 'Goal Setting'],
+      therapist: { nameKey: 'videoconferencing.psychologist.sarah_johnson', titleKey: 'videoconferencing.dr_title' },
+      duration: 50,
+      keyTopics: [t('sessionsummarizer.topics.anxiety_management'), t('sessionsummarizer.topics.coping_strategies'), t('sessionsummarizer.topics.goal_setting')],
       sentiment: 'Positive',
-      progress: 'Good'
+      progress: t('sessionsummarizer.progress.good')
     },
     {
       id: 2,
       date: '2024-01-08',
-      therapist: 'Dr. Sarah Johnson',
-      duration: '50 minutes',
+      therapist: { nameKey: 'videoconferencing.psychologist.sarah_johnson', titleKey: 'videoconferencing.dr_title' },
+      duration: 50,
       keyTopics: ['Work Stress', 'Sleep Issues', 'Mindfulness'],
       sentiment: 'Neutral',
-      progress: 'Stable'
+      progress: t('sessionsummarizer.progress.stable')
     }
   ];
 
@@ -121,10 +123,10 @@ export default function SessionSummarizer() {
             className="mb-8"
           >
             <h1 className="text-3xl font-bold text-foreground mb-2">
-              Session Summarizer
+              {t('sessionsummarizer.title')}
             </h1>
             <p className="text-muted-foreground">
-              AI-powered analysis and summarization of therapy sessions
+              {t('sessionsummarizer.subtitle')}
             </p>
           </motion.div>
 
@@ -140,12 +142,12 @@ export default function SessionSummarizer() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <FileText className="h-5 w-5" />
-                    Session Notes
+                    {t('sessionsummarizer.session_notes')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Textarea
-                    placeholder="Enter your session notes here... The AI will analyze and generate insights from your therapy session content."
+                    placeholder={t('sessionsummarizer.placeholder')}
                     value={sessionNotes}
                     onChange={(e) => setSessionNotes(e.target.value)}
                     className="min-h-[200px] resize-none"
@@ -153,7 +155,7 @@ export default function SessionSummarizer() {
                   
                   <div className="mt-4 flex justify-between items-center">
                     <p className="text-sm text-muted-foreground">
-                      {sessionNotes.length}/2000 characters
+                      {sessionNotes.length}/2000 {t('sessionsummarizer.characters')}
                     </p>
                     
                     <Button
@@ -164,12 +166,12 @@ export default function SessionSummarizer() {
                       {isGenerating ? (
                         <>
                           <Sparkles className="mr-2 h-4 w-4 animate-spin" />
-                          Analyzing...
+                          {t('sessionsummarizer.analyzing')}
                         </>
                       ) : (
                         <>
                           <Sparkles className="mr-2 h-4 w-4" />
-                          Generate Summary
+                          {t('sessionsummarizer.generate_summary')}
                         </>
                       )}
                     </Button>
@@ -182,7 +184,7 @@ export default function SessionSummarizer() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Clock className="h-5 w-5" />
-                    Recent Sessions
+                    {t('sessionsummarizer.recent_sessions')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -196,14 +198,14 @@ export default function SessionSummarizer() {
                           <div className="flex items-center gap-2">
                             <User className="h-4 w-4 text-muted-foreground" />
                             <span className="font-medium text-foreground">
-                              {summary.therapist}
+                              {`${t(summary.therapist.titleKey)} ${t(summary.therapist.nameKey)}`}
                             </span>
                           </div>
                           <Badge variant="outline">{summary.progress}</Badge>
                         </div>
                         
                         <p className="text-sm text-muted-foreground mb-2">
-                          {summary.date} • {summary.duration}
+                          {summary.date} • {summary.duration} {t('sessionsummarizer.minutes')}
                         </p>
                         
                         <div className="flex flex-wrap gap-1">
@@ -214,7 +216,7 @@ export default function SessionSummarizer() {
                           ))}
                           {summary.keyTopics.length > 2 && (
                             <Badge variant="secondary" className="text-xs">
-                              +{summary.keyTopics.length - 2} more
+                              +{summary.keyTopics.length - 2} {t('sessionsummarizer.more')}
                             </Badge>
                           )}
                         </div>
@@ -237,31 +239,31 @@ export default function SessionSummarizer() {
                   <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2">
                       <Brain className="h-5 w-5" />
-                      AI-Generated Summary
+                      {t('sessionsummarizer.ai_summary')}
                     </CardTitle>
                     <Button variant="outline" size="sm" onClick={handleExport}>
                       <Download className="mr-2 h-4 w-4" />
-                      Export
+                      {t('sessionsummarizer.export')}
                     </Button>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   {error && (
                     <div className="text-red-500 p-4 bg-red-100 rounded-md">
-                      <h4 className="font-bold mb-2">Error</h4>
+                      <h4 className="font-bold mb-2">{t('sessionsummarizer.error')}</h4>
                       <p>{error}</p>
                     </div>
                   )}
                   
                   {!summary && !isGenerating && !error && (
                     <div className="text-center text-muted-foreground p-8">
-                      <p>Your generated summary will appear here.</p>
+                      <p>{t('sessionsummarizer.summary_placeholder')}</p>
                     </div>
                   )}
 
                   {isGenerating && (
                      <div className="text-center text-muted-foreground p-8">
-                      <p>Generating summary...</p>
+                      <p>{t('sessionsummarizer.generating_summary')}</p>
                     </div>
                   )}
 
@@ -271,7 +273,7 @@ export default function SessionSummarizer() {
                       <div>
                         <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
                           <TrendingUp className="h-4 w-4" />
-                          Main Themes
+                          {t('sessionsummarizer.main_themes')}
                         </h3>
                         <div className="flex flex-wrap gap-2">
                           {summary.mainThemes?.map((theme) => (
@@ -284,7 +286,7 @@ export default function SessionSummarizer() {
 
                       {/* Key Insights */}
                       <div>
-                        <h3 className="font-semibold text-foreground mb-3">Key Insights</h3>
+                        <h3 className="font-semibold text-foreground mb-3">{t('sessionsummarizer.key_insights')}</h3>
                         <ul className="space-y-2">
                           {summary.keyInsights?.map((insight, index) => (
                             <li key={index} className="flex items-start gap-2 text-sm text-muted-foreground">
@@ -299,7 +301,7 @@ export default function SessionSummarizer() {
                       <div>
                         <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
                           <Target className="h-4 w-4" />
-                          Action Items
+                          {t('sessionsummarizer.action_items')}
                         </h3>
                         <ul className="space-y-2">
                           {summary.actionItems?.map((item, index) => (
@@ -313,7 +315,7 @@ export default function SessionSummarizer() {
 
                       {/* Next Session Goals */}
                       <div>
-                        <h3 className="font-semibold text-foreground mb-3">Next Session Goals</h3>
+                        <h3 className="font-semibold text-foreground mb-3">{t('sessionsummarizer.next_session_goals')}</h3>
                         <div className="space-y-2">
                           {summary.nextSessionGoals?.map((goal, index) => (
                             <div key={index} className="p-3 rounded-lg bg-accent/30">

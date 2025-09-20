@@ -1,24 +1,26 @@
 import React from 'react';
 import PsychologistCard from '../../components/ui/PsychologistCard';
 import { useNavigate } from 'react-router-dom';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const psychologists = {
   academicStress: [
-    { name: 'Dr. Alice Johnson', avatarUrl: '/placeholder.svg' },
-    { name: 'Dr. Bob Williams', avatarUrl: '/placeholder.svg' },
+    { nameKey: 'videoconferencing.psychologist.alice_johnson', avatarUrl: '/placeholder.svg', titleKey: 'videoconferencing.dr_title' },
+    { nameKey: 'videoconferencing.psychologist.bob_williams', avatarUrl: '/placeholder.svg', titleKey: 'videoconferencing.dr_title' },
   ],
   relationshipsProblems: [
-    { name: 'Dr. Carol White', avatarUrl: '/placeholder.svg' },
-    { name: 'Dr. David Green', avatarUrl: '/placeholder.svg' },
+    { nameKey: 'videoconferencing.psychologist.carol_white', avatarUrl: '/placeholder.svg', titleKey: 'videoconferencing.dr_title' },
+    { nameKey: 'videoconferencing.psychologist.david_green', avatarUrl: '/placeholder.svg', titleKey: 'videoconferencing.dr_title' },
   ],
   careerAnxiety: [
-    { name: 'Dr. Eve Black', avatarUrl: '/placeholder.svg' },
-    { name: 'Dr. Frank Blue', avatarUrl: '/placeholder.svg' },
+    { nameKey: 'videoconferencing.psychologist.eve_black', avatarUrl: '/placeholder.svg', titleKey: 'videoconferencing.dr_title' },
+    { nameKey: 'videoconferencing.psychologist.frank_blue', avatarUrl: '/placeholder.svg', titleKey: 'videoconferencing.dr_title' },
   ],
 };
 
 const VideoConferencing: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   const handleStartSession = () => {
     navigate('/session-guidelines');
@@ -26,16 +28,17 @@ const VideoConferencing: React.FC = () => {
 
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Video Conferencing</h1>
+      <h1 className="text-2xl font-bold mb-4">{t('videoconferencing.title')}</h1>
 
       <section className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">Academic Stress</h2>
+        <h2 className="text-xl font-semibold mb-4">{t('videoconferencing.academic_stress')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {psychologists.academicStress.map((psychologist) => (
             <PsychologistCard
-              key={psychologist.name}
-              name={psychologist.name}
+              key={psychologist.nameKey}
+              nameKey={psychologist.nameKey}
               avatarUrl={psychologist.avatarUrl}
+              titleKey={psychologist.titleKey}
               onStartSession={handleStartSession}
             />
           ))}
@@ -43,13 +46,14 @@ const VideoConferencing: React.FC = () => {
       </section>
 
       <section className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">Relationships Problems</h2>
+        <h2 className="text-xl font-semibold mb-4">{t('videoconferencing.relationships_problems')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {psychologists.relationshipsProblems.map((psychologist) => (
             <PsychologistCard
-              key={psychologist.name}
-              name={psychologist.name}
+              key={psychologist.nameKey}
+              nameKey={psychologist.nameKey}
               avatarUrl={psychologist.avatarUrl}
+              titleKey={psychologist.titleKey}
               onStartSession={handleStartSession}
             />
           ))}
@@ -57,13 +61,14 @@ const VideoConferencing: React.FC = () => {
       </section>
 
       <section>
-        <h2 className="text-xl font-semibold mb-4">Career Anxiety</h2>
+        <h2 className="text-xl font-semibold mb-4">{t('videoconferencing.career_anxiety')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {psychologists.careerAnxiety.map((psychologist) => (
             <PsychologistCard
-              key={psychologist.name}
-              name={psychologist.name}
+              key={psychologist.nameKey}
+              nameKey={psychologist.nameKey}
               avatarUrl={psychologist.avatarUrl}
+              titleKey={psychologist.titleKey}
               onStartSession={handleStartSession}
             />
           ))}

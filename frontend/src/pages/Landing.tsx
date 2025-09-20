@@ -13,23 +13,23 @@ export default function Landing() {
   const features = [
     {
       icon: Brain,
-      title: 'AI-Powered Analysis',
-      description: 'Advanced emotion recognition and mental health insights'
+      title: t('landing.features.ai_analysis.title'),
+      description: t('landing.features.ai_analysis.description')
     },
     {
       icon: Shield,
-      title: 'Safe & Secure',
-      description: 'Your privacy and data security are our top priorities'
+      title: t('landing.features.safe_secure.title'),
+      description: t('landing.features.safe_secure.description')
     },
     {
       icon: Users,
-      title: 'Peer Support',
-      description: 'Connect with others on similar wellness journeys'
+      title: t('landing.features.peer_support.title'),
+      description: t('landing.features.peer_support.description')
     },
     {
       icon: Zap,
-      title: 'Real-time Help',
-      description: 'Instant access to AI guidance and support tools'
+      title: t('landing.features.real_time_help.title'),
+      description: t('landing.features.real_time_help.description')
     }
   ];
 
@@ -86,12 +86,12 @@ export default function Landing() {
                 size="lg"
                 className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                 onClick={() => {
-                  document.getElementById('features')?.scrollIntoView({ 
-                    behavior: 'smooth' 
+                  document.getElementById('features')?.scrollIntoView({
+                    behavior: 'smooth'
                   });
                 }}
               >
-                Learn More
+                {t('landing.learn_more')}
               </Button>
             </motion.div>
           </motion.div>
@@ -121,10 +121,10 @@ export default function Landing() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-foreground mb-4 md:text-4xl">
-              Why Choose Our Platform?
+              {t('landing.why_choose_title')}
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Experience the future of mental wellness with our comprehensive AI-driven platform
+              {t('landing.why_choose_description')}
             </p>
           </div>
           
@@ -167,10 +167,10 @@ export default function Landing() {
       >
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold text-foreground mb-4 md:text-4xl">
-            Ready to Begin Your Wellness Journey?
+            {t('landing.cta_title')}
           </h2>
           <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Join thousands of young people who are already improving their mental health with our AI-powered platform
+            {t('landing.cta_description')}
           </p>
           
           <Button
@@ -188,7 +188,7 @@ export default function Landing() {
       <footer className="border-t border-border py-8">
         <div className="container mx-auto px-4 text-center">
           <p className="text-sm text-muted-foreground">
-            © 2024 Mental Wellness AI. Empowering youth through technology.
+            {t('landing.footer')}
           </p>
         </div>
       </footer>

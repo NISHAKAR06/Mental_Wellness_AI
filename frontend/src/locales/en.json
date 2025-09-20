@@ -1,0 +1,293 @@
+{
+  "nav": {
+    "login": "Login",
+    "register": "Register",
+    "dashboard": "Dashboard",
+    "dashboard_desc": "Overview",
+    "logout": "Logout",
+    "settings": "Settings",
+    "settings_desc": "Manage your account"
+  },
+  "hero": {
+    "title": "Generative AI for Youth Mental Wellness",
+    "subtitle": "Empowering youth with AI-driven mental wellness support",
+    "cta": "Get Started",
+    "description": "Join our supportive community and access AI-powered tools designed specifically for youth mental health and wellbeing."
+  },
+  "features": {
+    "videoconf": "Video Conferencing",
+    "videoconf_desc": "Connect with therapists",
+    "emotion": "AI Emotion Monitoring",
+    "emotion_desc": "AI-powered emotional analysis",
+    "summarizer": "Session Summarizer",
+    "summarizer_desc": "Session insights",
+    "gaming": "AI-Powered Gaming",
+    "gaming_desc": "Mental health games",
+    "peersupport": "Peer Support Groups",
+    "peersupport_desc": "Community support",
+    "multilingual": "Multilingual & Accessibility",
+    "lifestyle": "Lifestyle Tools"
+  },
+  "gaming": {
+    "title": "AI-Powered Gaming",
+    "subtitle": "Interactive games designed to improve mental health through engaging gameplay",
+    "play": "Play Now",
+    "completed": "Completed",
+    "close": "Close",
+    "beginner": "Beginner",
+    "intermediate": "Intermediate",
+    "advanced": "Advanced",
+    "relaxation": "Relaxation",
+    "cbt": "CBT",
+    "focus": "Focus",
+    "creativity": "Creativity",
+    "mindful_breathing_quest": "Mindful Breathing Quest",
+    "mindful_breathing_quest_desc": "Guide your character through peaceful landscapes using breathing techniques",
+    "cognitive_reframing": "Cognitive Reframing",
+    "cognitive_reframing_desc": "Challenge negative thoughts and find positive perspectives.",
+    "mindful_maze": "Mindful Maze",
+    "mindful_maze_desc": "Navigate a maze using mindfulness and focus.",
+    "pattern_painter": "Pattern Painter",
+    "pattern_painter_desc": "Create beautiful patterns while practicing mindfulness."
+  },
+  "dashboard": {
+    "welcome": "Welcome back, take a deep breath, you're safe here 🌿",
+    "subtitle": "Your mental wellness journey continues here",
+    "tools_title": "Your Wellness Tools",
+    "stats_tools": "Tools Available",
+    "stats_support": "AI Support",
+    "stats_possibilities": "Possibilities",
+    "welcome_back": "Welcome back, {name}! 👋"
+  },
+  "videoconferencing": {
+    "title": "Video Conferencing",
+    "academic_stress": "Academic Stress",
+    "relationships_problems": "Relationships Problems",
+    "career_anxiety": "Career Anxiety",
+    "specializes_description": "Specializes in providing support for various mental health concerns.",
+    "start_session": "Start Session",
+    "dr_title": "Dr.",
+    "psychologist": {
+      "alice_johnson": "Alice Johnson",
+      "bob_williams": "Bob Williams",
+      "carol_white": "Carol White",
+      "david_green": "David Green",
+      "eve_black": "Eve Black",
+      "frank_blue": "Frank Blue",
+      "sarah_johnson": "Sarah Johnson"
+    }
+  },
+  "sessionsummarizer": {
+    "title": "Session Summarizer",
+    "subtitle": "AI-powered analysis and summarization of therapy sessions",
+    "session_notes": "Session Notes",
+    "placeholder": "Enter your session notes here... The AI will analyze and generate insights from your therapy session content.",
+    "characters": "characters",
+    "analyzing": "Analyzing...",
+    "generate_summary": "Generate Summary",
+    "recent_sessions": "Recent Sessions",
+    "more": "more",
+    "ai_summary": "AI-Generated Summary",
+    "export": "Export",
+    "error": "Error",
+    "summary_placeholder": "Your generated summary will appear here.",
+    "generating_summary": "Generating summary...",
+    "main_themes": "Main Themes",
+    "key_insights": "Key Insights",
+    "action_items": "Action Items",
+    "next_session_goals": "Next Session Goals",
+    "minutes": "minutes",
+    "progress": {
+      "good": "Good",
+      "stable": "Stable"
+    },
+    "topics": {
+      "anxiety_management": "Anxiety Management",
+      "coping_strategies": "Coping Strategies",
+      "goal_setting": "Goal Setting"
+    }
+  },
+  "emotionmonitoring": {
+    "title": "AI Emotion Monitoring",
+    "subtitle": "Real-time analysis of your emotional state using facial recognition and voice analysis",
+    "stop_monitoring": "Stop Monitoring",
+    "start_monitoring": "Start Monitoring",
+    "video_feed": "Video Feed",
+    "vital_indicators": "Vital Indicators",
+    "emotion_analysis": "Emotion Analysis",
+    "ai_insights": "AI Insights",
+    "heart_rate": "Heart Rate",
+    "voice_stress": "Voice Stress",
+    "facial_tension": "Facial Tension",
+    "normal": "Normal",
+    "calm": "Calm",
+    "relaxed": "Relaxed",
+    "overall_wellbeing": "Overall Wellbeing",
+    "good": "Good",
+    "stable_message": "Your emotional state appears stable and positive. Keep up the good work!",
+    "recommendation": "Recommendation",
+    "breathing_recommendation": "Consider practicing deep breathing exercises to maintain this positive state.",
+    "happyclear": "Happy",
+    "neutral": "Neutral",
+    "anxious": "Anxious",
+    "stressed": "Stressed",
+    "camera_permission": "Camera permission denied. Please allow camera access to use this feature.",
+    "low": "Low",
+    "minimal": "Minimal"
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "login": "Sign In",
+    "register": "Create Account",
+    "switchToRegister": "Don't have an account? Sign up",
+    "switchToLogin": "Already have an account? Sign in"
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Manage your account and preferences.",
+    "tabs": {
+      "profile": "Profile",
+      "theme": "Theme",
+      "language": "Language",
+      "notifications": "Notifications",
+      "security": "Security"
+    },
+    "profile": {
+      "title": "Profile Information",
+      "description": "Update your personal details.",
+      "name": "Name",
+      "email": "Email",
+      "save": "Save Changes"
+    },
+    "theme": {
+      "title": "Theme",
+      "description": "Customize the look and feel of the app.",
+      "theme": "Theme"
+    },
+    "appearance": {
+      "light": "Light",
+      "dark": "Dark"
+    },
+    "language": {
+      "title": "Language",
+      "description": "Choose your preferred language.",
+      "select": "Select Language",
+      "en": "English",
+      "ta": "Tamil",
+      "hi": "Hindi"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "description": "Manage how you receive notifications.",
+      "email": "Email Notifications",
+      "emailDesc": "Receive updates and alerts via email.",
+      "push": "Push Notifications",
+      "pushDesc": "Get real-time alerts on your device."
+    },
+    "security": {
+      "title": "Security",
+      "description": "Manage your password and security settings.",
+      "currentPassword": "Current Password",
+      "newPassword": "New Password",
+      "confirmPassword": "Confirm New Password",
+      "updatePassword": "Update Password"
+    }
+  },
+  "sidebar": {
+    "title": "Mental Wellness Hub",
+    "subtitle": "your AI-powered wellness companion",
+    "footer_main": "🌟 Your mental health matters",
+    "footer_sub": "Take it one day at a time"
+  },
+  "landing": {
+    "learn_more": "Learn More",
+    "why_choose_title": "Why Choose Our Platform?",
+    "why_choose_description": "Experience the future of mental wellness with our comprehensive AI-driven platform",
+    "features": {
+      "ai_analysis": {
+        "title": "AI-Powered Analysis",
+        "description": "Advanced emotion recognition and mental health insights"
+      },
+      "safe_secure": {
+        "title": "Safe & Secure",
+        "description": "Your privacy and data security are our top priorities"
+      },
+      "peer_support": {
+        "title": "Peer Support",
+        "description": "Connect with others on similar wellness journeys"
+      },
+      "real_time_help": {
+        "title": "Real-time Help",
+        "description": "Instant access to AI guidance and support tools"
+      }
+    },
+    "cta_title": "Ready to Begin Your Wellness Journey?",
+    "cta_description": "Join thousands of young people who are already improving their mental health with our AI-powered platform",
+    "footer": "© 2025 Mental Wellness AI. Empowering youth through technology."
+  },
+  "peersupport": {
+    "title": "Peer Support Groups",
+    "subtitle": "Connect with others who understand your journey",
+    "join_prompt": "Would you like to engage with our supportive community?",
+    "engage_yes": "Yes, I'd like to engage",
+    "engage_no": "Not right now",
+    "create_username": "Create Your Username",
+    "username_description": "Choose a username to use in the support groups. You can be anonymous.",
+    "username_placeholder": "Enter your username",
+    "submit": "Submit",
+    "welcome_message": "Welcome, {username}! Connect with others who understand your journey.",
+    "all_groups": "All Groups",
+    "my_inbox": "My Inbox",
+    "create_group": "Create Group",
+    "join_button": "Join",
+    "joined": "Joined",
+    "send": "Send",
+    "share_thoughts": "Share your thoughts with the group...",
+    "create_group_title": "Create a New Support Group",
+    "create_group_description": "Fill in the details below to create a new space for connection.",
+    "group_name": "Name",
+    "group_description": "Description",
+    "group_name_placeholder": "e.g., Creative Minds",
+    "group_description_placeholder": "A short description of your group's purpose.",
+    "replies": "replies",
+    "minutes_ago": "minutes ago",
+    "hour_ago": "hour ago",
+    "just_now": "just now",
+    "members": "members",
+    "online_now": "online now",
+    "age_group": "Age Group",
+    "condition": "Condition",
+    "practice": "Practice",
+    "user_created": "User Created",
+    "group1_name": "Young Adults (18-25)",
+    "group1_desc": "Support for college students and young professionals",
+    "group2_name": "Anxiety Warriors",
+    "group2_desc": "Coping with anxiety together",
+    "group3_name": "Mindfulness Circle",
+    "group3_desc": "Daily mindfulness practice and meditation",
+    "messages": {
+      "sarah_message": "Just wanted to share that I had a breakthrough in therapy today! The breathing exercises we discussed really helped.",
+      "alex_message": "Having a tough day but remembering that it's okay to not be okay. Thanks for all the support yesterday!",
+      "jordan_message": "Does anyone have tips for managing social anxiety at work? Starting a new job next week."
+    },
+    "users": {
+      "sarah_m": "Sarah M.",
+      "alex_k": "Alex K.",
+      "jordan_l": "Jordan L."
+    },
+    "time_stamps": {
+      "ten_minutes_ago": "10 minutes ago",
+      "twenty_five_minutes_ago": "25 minutes ago",
+      "one_hour_ago": "1 hour ago"
+    }
+  },
+  "session_guidelines": {
+    "title": "Session Guidelines",
+    "guideline_1": "Ensure you are in a quiet and private space.",
+    "guideline_2": "Check your internet connection for stability.",
+    "guideline_3": "Use headphones for better audio quality.",
+    "guideline_4": "Be respectful and mindful of the session time.",
+    "start_button": "Start"
+  }
+}

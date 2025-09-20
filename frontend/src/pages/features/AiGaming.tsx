@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -19,6 +20,7 @@ import MindfulMaze from './games/MindfulMaze';
 import PatternPainter from './games/PatternPainter';
 
 export default function AiGaming() {
+  const { t } = useLanguage();
   const [currentGame, setCurrentGame] = useState(null);
   const gameRef = useRef<HTMLDivElement>(null);
   const topRef = useRef<HTMLDivElement>(null);
@@ -39,10 +41,10 @@ export default function AiGaming() {
   const games = [
     {
       id: 1,
-      title: 'Mindful Breathing Quest',
-      description: 'Guide your character through peaceful landscapes using breathing techniques',
-      difficulty: 'Beginner',
-      category: 'Relaxation',
+      title: t('gaming.mindful_breathing_quest'),
+      description: t('gaming.mindful_breathing_quest_desc'),
+      difficulty: t('gaming.beginner'),
+      category: t('gaming.relaxation'),
       icon: '🌬️',
       color: 'from-blue-500 to-cyan-500',
       progress: 75,
@@ -51,10 +53,10 @@ export default function AiGaming() {
     },
     {
       id: 2,
-      title: 'Cognitive Reframing',
-      description: 'Challenge negative thoughts and find positive perspectives.',
-      difficulty: 'Intermediate',
-      category: 'CBT',
+      title: t('gaming.cognitive_reframing'),
+      description: t('gaming.cognitive_reframing_desc'),
+      difficulty: t('gaming.intermediate'),
+      category: t('gaming.cbt'),
       icon: '🔄',
       color: 'from-purple-500 to-pink-500',
       progress: 45,
@@ -63,10 +65,10 @@ export default function AiGaming() {
     },
     {
       id: 3,
-      title: 'Mindful Maze',
-      description: 'Navigate a maze using mindfulness and focus.',
-      difficulty: 'Intermediate',
-      category: 'Focus',
+      title: t('gaming.mindful_maze'),
+      description: t('gaming.mindful_maze_desc'),
+      difficulty: t('gaming.intermediate'),
+      category: t('gaming.focus'),
       icon: '🗺️',
       color: 'from-red-500 to-orange-500',
       progress: 10,
@@ -75,10 +77,10 @@ export default function AiGaming() {
     },
     {
       id: 4,
-      title: 'Pattern Painter',
-      description: 'Create beautiful patterns while practicing mindfulness.',
-      difficulty: 'Beginner',
-      category: 'Creativity',
+      title: t('gaming.pattern_painter'),
+      description: t('gaming.pattern_painter_desc'),
+      difficulty: t('gaming.beginner'),
+      category: t('gaming.creativity'),
       icon: '🎨',
       color: 'from-green-500 to-emerald-500',
       progress: 20,
@@ -96,10 +98,10 @@ export default function AiGaming() {
             className="mb-8"
           >
             <h1 className="text-3xl font-bold text-foreground mb-2">
-              AI-Powered Gaming
+              {t('gaming.title')}
             </h1>
             <p className="text-muted-foreground">
-              Interactive games designed to improve mental health through engaging gameplay
+              {t('gaming.subtitle')}
             </p>
           </motion.div>
 
@@ -149,12 +151,12 @@ export default function AiGaming() {
                           {game.completed ? (
                             <>
                               <Trophy className="mr-2 h-4 w-4" />
-                              Completed
+                              {t('gaming.completed')}
                             </>
                           ) : (
                             <>
                               <Play className="mr-2 h-4 w-4" />
-                              Play Now
+                              {t('gaming.play')}
                             </>
                           )}
                         </Button>
@@ -188,7 +190,7 @@ export default function AiGaming() {
                           variant="outline" 
                           onClick={handleCloseGame}
                         >
-                          Close
+                          {t('gaming.close')}
                         </Button>
                       </div>
                     </CardContent>
