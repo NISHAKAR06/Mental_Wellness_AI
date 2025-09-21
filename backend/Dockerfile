@@ -23,8 +23,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Create non-root user
-RUN addgroup --gid 1001 --system appgroup && \
-    adduser --uid 1001 --system appuser --gid appgroup
+RUN groupadd --gid 1001 appgroup && \
+    useradd --uid 1001 --gid 1001 --create-home --shell /bin/bash appuser
 
 # Change ownership of app directory
 RUN chown -R appuser:appgroup /app
