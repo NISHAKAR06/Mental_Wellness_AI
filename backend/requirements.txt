@@ -55,3 +55,10 @@ psycopg2-binary==2.9.9
 dj-database-url==2.2.0
 tf-keras==2.15.1
 librosa==0.10.2
+
+# AI Psychologist Dependencies
+PyJWT==2.8.0
+google-generativeai==0.3.2
+python-dotenv==1.0.0
+requests==2.32.3
+django-cors-headers==4.3.1

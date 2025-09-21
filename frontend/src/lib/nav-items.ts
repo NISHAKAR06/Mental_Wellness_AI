@@ -7,6 +7,7 @@ import {
   Users,
   Activity,
   Settings,
+  MessageSquareHeart,
 } from 'lucide-react';
 
 export const sidebarItems = [
@@ -24,6 +25,7 @@ export const sidebarItems = [
     translationKey: 'features.videoconf',
     description: 'Connect with therapists'
   },
+
   {
     icon: Brain,
     label: 'AI Emotion Monitoring',

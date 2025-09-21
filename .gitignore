@@ -28,3 +28,16 @@ __pycache__/
 env/
 .env
 /backend/db.sqlite3/
+.env.template
+
+# ai_service
+ai_service/__pycache__
+ai_service/ai_service.egg-info/
+ai_service/.env
+ai_service/main_no_imports.py
+ai_service/quick_setup.py
+ai_service/run_service.py
+ai_service/run_from_parent.py
+/dev_setup.py
+/solution.py
+/test_jwt.py

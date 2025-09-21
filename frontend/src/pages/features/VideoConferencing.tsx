@@ -5,13 +5,13 @@ import { useLanguage } from '@/contexts/LanguageContext';
 
 const psychologists = {
   academicStress: [
-    { nameKey: 'videoconferencing.psychologist.alice_johnson', avatarUrl: '/placeholder.svg', titleKey: 'videoconferencing.dr_title' },
+    { id: 'alice_johnson', nameKey: 'videoconferencing.psychologist.alice_johnson', avatarUrl: '/placeholder.svg', titleKey: 'videoconferencing.dr_title' },
   ],
   relationshipsProblems: [
-    { nameKey: 'videoconferencing.psychologist.carol_white', avatarUrl: '/placeholder.svg', titleKey: 'videoconferencing.dr_title' },
+    { id: 'carol_white', nameKey: 'videoconferencing.psychologist.carol_white', avatarUrl: '/placeholder.svg', titleKey: 'videoconferencing.dr_title' },
   ],
   careerAnxiety: [
-    { nameKey: 'videoconferencing.psychologist.eve_black', avatarUrl: '/placeholder.svg', titleKey: 'videoconferencing.dr_title' },
+    { id: 'eve_black', nameKey: 'videoconferencing.psychologist.eve_black', avatarUrl: '/placeholder.svg', titleKey: 'videoconferencing.dr_title' },
   ],
 };
 
@@ -19,8 +19,20 @@ const VideoConferencing: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
 
-  const handleStartSession = () => {
-    navigate('/session-guidelines');
+  const handleStartSession = (psychologistName: string) => {
+    switch (psychologistName) {
+      case 'alice_johnson':
+        navigate('/dashboard/psychologists/alice-johnson');
+        break;
+      case 'carol_white':
+        navigate('/dashboard/psychologists/carol-white');
+        break;
+      case 'eve_black':
+        navigate('/dashboard/psychologists/eve-black');
+        break;
+      default:
+        navigate('/session-guidelines');
+    }
   };
 
   return (
@@ -41,6 +53,7 @@ const VideoConferencing: React.FC = () => {
                     avatarUrl={psychologist.avatarUrl}
                     titleKey={psychologist.titleKey}
                     onStartSession={handleStartSession}
+                    psychologistId={psychologist.id}
                   />
                 </div>
               ))}
@@ -58,6 +71,7 @@ const VideoConferencing: React.FC = () => {
                     avatarUrl={psychologist.avatarUrl}
                     titleKey={psychologist.titleKey}
                     onStartSession={handleStartSession}
+                    psychologistId={psychologist.id}
                   />
                 </div>
               ))}
@@ -77,6 +91,7 @@ const VideoConferencing: React.FC = () => {
                 avatarUrl={psychologist.avatarUrl}
                 titleKey={psychologist.titleKey}
                 onStartSession={handleStartSession}
+                psychologistId={psychologist.id}
               />
             </div>
           ))}

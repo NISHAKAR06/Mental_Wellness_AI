@@ -11,6 +11,9 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import DashboardLayout from "./components/layout/DashboardLayout";
 import VideoConferencing from "./pages/features/VideoConferencing";
+import DrAliceJohnson from "./pages/features/psychologists/DrAliceJohnson";
+import DrCarolWhite from "./pages/features/psychologists/DrCarolWhite";
+import DrEveBlack from "./pages/features/psychologists/DrEveBlack";
 import EmotionMonitoring from "./pages/features/EmotionMonitoring";
 import SessionSummarizer from "./pages/features/SessionSummarizer";
 import AiGaming from "./pages/features/AiGaming";
@@ -20,6 +23,7 @@ import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import SessionGuidelines from "./pages/SessionGuidelines";
 import VideoCall from "./pages/VideoCall";
+import VideoCallSimple from "./pages/VideoCallSimple";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +42,9 @@ const App = () => (
                 <Route element={<DashboardLayout />}>
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/dashboard/video-conferencing" element={<VideoConferencing />} />
+                  <Route path="/dashboard/psychologists/alice-johnson" element={<DrAliceJohnson />} />
+                  <Route path="/dashboard/psychologists/carol-white" element={<DrCarolWhite />} />
+                  <Route path="/dashboard/psychologists/eve-black" element={<DrEveBlack />} />
                   <Route path="/dashboard/emotion-monitoring" element={<EmotionMonitoring />} />
                   <Route path="/dashboard/session-summarizer" element={<SessionSummarizer />} />
                   <Route path="/dashboard/ai-gaming" element={<AiGaming />} />

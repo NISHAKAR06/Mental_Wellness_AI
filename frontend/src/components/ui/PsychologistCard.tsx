@@ -9,12 +9,17 @@ interface PsychologistCardProps {
   nameKey?: string;
   avatarUrl: string;
   titleKey?: string;
-  onStartSession: () => void;
+  onStartSession: (psychologistName: string) => void;
+  psychologistId: string;
 }
 
-const PsychologistCard: React.FC<PsychologistCardProps> = ({ name, nameKey, avatarUrl, titleKey, onStartSession }) => {
+const PsychologistCard: React.FC<PsychologistCardProps> = ({ name, nameKey, avatarUrl, titleKey, onStartSession, psychologistId }) => {
   const { t } = useLanguage();
   const displayName = nameKey ? t(nameKey) : (name || '');
+
+  const handleStartSession = () => {
+    onStartSession(psychologistId);
+  };
 
   return (
     <Card className="w-full max-w-sm">
@@ -35,7 +40,7 @@ const PsychologistCard: React.FC<PsychologistCardProps> = ({ name, nameKey, avat
         </p>
       </CardContent>
       <CardFooter>
-        <Button onClick={onStartSession} className="w-full">
+        <Button onClick={handleStartSession} className="w-full">
           {t('videoconferencing.start_session')}
         </Button>
       </CardFooter>
@@ -44,3 +49,4 @@ const PsychologistCard: React.FC<PsychologistCardProps> = ({ name, nameKey, avat
 };
 
 export default PsychologistCard;
+ 

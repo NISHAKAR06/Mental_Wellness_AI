@@ -1,0 +1,23 @@
+# AI Service Dependencies
+fastapi>=0.104.0
+uvicorn[standard]>=0.23.0
+python-multipart>=0.0.6
+python-jose[cryptography]>=3.3.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+requests>=2.31.0
+
+# AI/ML Dependencies
+google-generativeai>=0.3.2
+google-cloud-speech>=2.21.1
+google-cloud-texttospeech>=2.13.0
+
+# Environment and Configuration
+python-dotenv>=1.0.0
+
+# Development Dependencies
+pytest>=7.4.3
+httpx>=0.25.2
+
+# Compatibility fixes for Python typing
+typing-extensions>=4.7.0
