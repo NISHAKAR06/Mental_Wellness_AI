@@ -15,6 +15,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Use SECRET_KEY from environment, fallback to development key
 SECRET_KEY = os.getenv('SECRET_KEY', os.getenv('DJANGO_SECRET_KEY', 'django-insecure-key-for-development-2025'))
 
+# Gemini API Key for session summarization
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
