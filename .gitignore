@@ -59,3 +59,6 @@ Thumbs.db
 # Deployment artifacts
 deploy.sh
 deploy_*.sh
+
+/deployment_guide.md
+/deployment_steps.md
