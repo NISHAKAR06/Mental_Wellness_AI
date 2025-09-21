@@ -8,6 +8,7 @@ import { Checkbox } from '../../../components/ui/checkbox';
 import { Mic, MicOff, StopCircle, Volume2, VolumeX, AlertTriangle, Heart, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ThreeDModelViewer } from '../../../components/ui/ThreeDModelViewer';
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 interface SessionResponse {
   session_id: string;
@@ -22,6 +23,7 @@ interface SessionResponse {
 
 const DrAliceJohnson: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [selectedLanguage, setSelectedLanguage] = useState<string>('en-IN');
   const [consentGiven, setConsentGiven] = useState<boolean>(false);
   const [session, setSession] = useState<SessionResponse | null>(null);
@@ -222,10 +224,10 @@ const DrAliceJohnson: React.FC = () => {
             Back to Video Conferencing
           </Button>
 
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Dr. Alice Johnson</h1>
-          <p className="text-xl text-gray-600">Academic Stress Specialist</p>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">{t('psychologist_pages.alice_johnson.title')}</h1>
+          <p className="text-xl text-gray-600">{t('psychologist_pages.alice_johnson.subtitle')}</p>
           <p className="text-sm text-gray-500 mt-2">
-            Specializes in helping students manage academic pressure, test anxiety, and study-related stress.
+            {t('psychologist_pages.alice_johnson.description')}
           </p>
         </header>
 
@@ -233,9 +235,9 @@ const DrAliceJohnson: React.FC = () => {
         {!session && !wsConnected && (
           <Card>
             <CardHeader>
-              <CardTitle>Start AI Voice Session</CardTitle>
+              <CardTitle>{t('psychologist_pages.alice_johnson.session_title')}</CardTitle>
               <CardDescription>
-                Connect with Dr. Alice Johnson for personalized academic stress support through voice conversation.
+                {t('psychologist_pages.alice_johnson.session_description')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

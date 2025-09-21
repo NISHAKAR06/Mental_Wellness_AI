@@ -6,7 +6,9 @@
     "dashboard_desc": "Overview",
     "logout": "Logout",
     "settings": "Settings",
-    "settings_desc": "Manage your account"
+    "settings_desc": "Manage your account",
+    "pricing": "Plans & Pricing",
+    "pricing_desc": "Upgrade your plan"
   },
   "hero": {
     "title": "Generative AI for Youth Mental Wellness",
@@ -75,6 +77,71 @@
       "eve_black": "Eve Black",
       "frank_blue": "Frank Blue",
       "sarah_johnson": "Sarah Johnson"
+    }
+  },
+  "psychologist_pages": {
+    "alice_johnson": {
+      "title": "Dr. Alice Johnson",
+      "subtitle": "Academic Stress Specialist",
+      "description": "Specializes in helping students manage academic pressure, test anxiety, and study-related stress.",
+      "session_title": "Start AI Voice Session",
+      "session_description": "Connect with Dr. Alice Johnson for personalized academic stress support through voice conversation.",
+      "consent_label": "I consent to storing our conversation for improved personalized support",
+      "start_button": "Start Voice Session with Dr. Alice Johnson",
+      "connect_button": "Connect to Dr. Alice Johnson",
+      "session_status": "Session with Dr. Alice Johnson",
+      "speaking": "Dr. Alice Johnson is speaking...",
+      "waiting": "Waiting for your response...",
+      "stop_speaking": "Stop Speaking",
+      "start_speaking": "Start Speaking",
+      "barge_in": "Barge In",
+      "end_session": "End Session",
+      "conversation_title": "Your Conversation with Dr. Alice Johnson",
+      "start_conversation": "Start speaking to begin your conversation with Dr. Alice Johnson...",
+      "you": "You:",
+      "dr_alice": "Dr. Alice Johnson:"
+    },
+    "carol_white": {
+      "title": "Dr. Carol White",
+      "subtitle": "Relationships Problems Specialist",
+      "description": "Specializes in helping with relationship conflicts, communication issues, and emotional intimacy challenges.",
+      "session_title": "Start AI Voice Session",
+      "session_description": "Connect with Dr. Carol White for personalized relationship support through voice conversation.",
+      "consent_label": "I consent to storing our conversation for improved personalized support",
+      "start_button": "Start Voice Session with Dr. Carol White",
+      "connect_button": "Connect to Dr. Carol White",
+      "session_status": "Session with Dr. Carol White",
+      "speaking": "Dr. Carol White is speaking...",
+      "waiting": "Waiting for your response...",
+      "stop_speaking": "Stop Speaking",
+      "start_speaking": "Start Speaking",
+      "barge_in": "Barge In",
+      "end_session": "End Session",
+      "conversation_title": "Your Conversation with Dr. Carol White",
+      "start_conversation": "Start speaking to begin your conversation with Dr. Carol White...",
+      "you": "You:",
+      "dr_carol": "Dr. Carol White:"
+    },
+    "eve_black": {
+      "title": "Dr. Eve Black",
+      "subtitle": "Career Anxiety Specialist",
+      "description": "Specializes in helping with work-related stress, career transitions, and professional anxiety management.",
+      "session_title": "Start AI Voice Session",
+      "session_description": "Connect with Dr. Eve Black for personalized career anxiety support through voice conversation.",
+      "consent_label": "I consent to storing our conversation for improved personalized support",
+      "start_button": "Start Voice Session with Dr. Eve Black",
+      "connect_button": "Connect to Dr. Eve Black",
+      "session_status": "Session with Dr. Eve Black",
+      "speaking": "Dr. Eve Black is speaking...",
+      "waiting": "Waiting for your response...",
+      "stop_speaking": "Stop Speaking",
+      "start_speaking": "Start Speaking",
+      "barge_in": "Barge In",
+      "end_session": "End Session",
+      "conversation_title": "Your Conversation with Dr. Eve Black",
+      "start_conversation": "Start speaking to begin your conversation with Dr. Eve Black...",
+      "you": "You:",
+      "dr_eve": "Dr. Eve Black:"
     }
   },
   "sessionsummarizer": {
@@ -306,5 +373,90 @@
     "guideline_3": "Use headphones for better audio quality.",
     "guideline_4": "Be respectful and mindful of the session time.",
     "start_button": "Start"
+  },
+  "pricing": {
+    "title": "Plans & Pricing",
+    "pricing_desc": "Upgrade your plan",
+    "hero_title": "Affordable Mental Healthcare",
+    "hero_title_highlight": "Everyone Deserves",
+    "hero_subtitle": "Breaking barriers to mental wellness with AI-powered therapy accessible to millions across India, regardless of location or budget.",
+    "users_served": "10,000+ users served",
+    "hipaa_compliant": "HIPAA & GDPR compliant",
+    "multilingual_support": "24/7 multilingual support",
+    "plans_title": "Choose Your Wellness Journey",
+    "plans_subtitle": "Start your mental health journey today. All plans include our core AI therapy technology.",
+    "popular_badge": "Most Popular",
+    "therapy_time": "Human therapist time",
+    "sessions_month": "Sessions/month",
+    "get_started_free": "Get Started Free",
+    "contact_sales": "Contact Sales",
+    "start_free_trial": "Start Free Trial",
+    "testimonials_title": "Trusted by Thousands",
+    "testimonials_subtitle": "Real stories from people who've transformed their mental wellness journey",
+    "market_impact_title": "Market Impact",
+    "market_impact_subtitle": "Average annual therapy cost saved per user",
+    "market_impact_improvement": "of users show improved mental health scores",
+    "market_impact_availability": "availability eliminates access barriers",
+    "market_impact_wait_times": "faster than traditional therapy wait times",
+    "enterprise_title": "Ready to Transform Your Organization's Mental Health?",
+    "enterprise_subtitle": "Join leading companies providing comprehensive mental wellness to their employees",
+    "corporate_trial": "Start Free Corporate Trial",
+    "schedule_demo": "Schedule Enterprise Demo",
+    "free_plan": {
+      "name": "Free Support",
+      "description": "Essential mental wellness tools for everyone",
+      "features": [
+        "5 AI therapy sessions/month",
+        "Basic emotion monitoring",
+        "1 therapeutic game access",
+        "Crisis helpline numbers",
+        "Community forum access",
+        "Basic progress tracking"
+      ]
+    },
+    "personal_plan": {
+      "name": "Personal Care",
+      "description": "Comprehensive personal mental health support",
+      "features": [
+        "Unlimited AI therapy sessions",
+        "Advanced emotion monitoring",
+        "All therapeutic games",
+        "Session summary reports",
+        "Multilingual support (3 languages)",
+        "Progress analytics dashboard",
+        "Emergency crisis alerts",
+        "24/7 chat support"
+      ]
+    },
+    "family_plan": {
+      "name": "Family Wellness",
+      "description": "Complete family mental health coverage",
+      "features": [
+        "Everything in Personal Care",
+        "Up to 4 family members",
+        "Family therapy coordination",
+        "Parent-child communication tools",
+        "School stress monitoring",
+        "Family progress reports",
+        "Priority support",
+        "Custom family therapy plans"
+      ]
+    },
+    "enterprise_plan": {
+      "name": "Corporate Wellness",
+      "description": "Organization-wide mental health solutions",
+      "features": [
+        "Everything in Family Wellness",
+        "Unlimited organization users",
+        "Corporate dashboard analytics",
+        "HR integration APIs",
+        "Custom therapy tracks",
+        "Manager coaching sessions",
+        "Workplace stress assessment",
+        "Dedicated account manager",
+        "White-label branding option",
+        "Compliance reporting (GDPR, HIPAA)"
+      ]
+    }
   }
 }

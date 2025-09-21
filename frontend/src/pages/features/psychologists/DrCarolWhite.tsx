@@ -8,6 +8,7 @@ import { Checkbox } from '../../../components/ui/checkbox';
 import { Mic, MicOff, StopCircle, Volume2, VolumeX, AlertTriangle, Heart, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ThreeDModelViewer } from '../../../components/ui/ThreeDModelViewer';
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 interface SessionResponse {
   session_id: string;
@@ -22,6 +23,7 @@ interface SessionResponse {
 
 const DrCarolWhite: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [selectedLanguage, setSelectedLanguage] = useState<string>('en-IN');
   const [consentGiven, setConsentGiven] = useState<boolean>(false);
   const [session, setSession] = useState<SessionResponse | null>(null);
@@ -222,10 +224,10 @@ const DrCarolWhite: React.FC = () => {
             Back to Video Conferencing
           </Button>
 
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Dr. Carol White</h1>
-          <p className="text-xl text-gray-600">Relationships Problems Specialist</p>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">{t('psychologist_pages.carol_white.title')}</h1>
+          <p className="text-xl text-gray-600">{t('psychologist_pages.carol_white.subtitle')}</p>
           <p className="text-sm text-gray-500 mt-2">
-            Specializes in helping with relationship conflicts, communication issues, and emotional intimacy challenges.
+            {t('psychologist_pages.carol_white.description')}
           </p>
         </header>
 
@@ -233,9 +235,9 @@ const DrCarolWhite: React.FC = () => {
         {!session && !wsConnected && (
           <Card>
             <CardHeader>
-              <CardTitle>Start AI Voice Session</CardTitle>
+              <CardTitle>{t('psychologist_pages.carol_white.session_title')}</CardTitle>
               <CardDescription>
-                Connect with Dr. Carol White for personalized relationship support through voice conversation.
+                {t('psychologist_pages.carol_white.session_description')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -262,12 +264,12 @@ const DrCarolWhite: React.FC = () => {
                   onCheckedChange={(checked) => setConsentGiven(checked as boolean)}
                 />
                 <label htmlFor="consent" className="text-sm">
-                  I consent to storing our conversation for improved personalized support
+                  {t('psychologist_pages.carol_white.consent_label')}
                 </label>
               </div>
 
               <Button onClick={startSession} className="w-full" size="lg">
-                Start Voice Session with Dr. Carol White
+                {t('psychologist_pages.carol_white.start_button')}
               </Button>
             </CardContent>
           </Card>

@@ -8,6 +8,7 @@ import { Checkbox } from '../../../components/ui/checkbox';
 import { Mic, MicOff, StopCircle, Volume2, VolumeX, AlertTriangle, Heart, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ThreeDModelViewer } from '../../../components/ui/ThreeDModelViewer';
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 interface SessionResponse {
   session_id: string;
@@ -22,6 +23,7 @@ interface SessionResponse {
 
 const DrEveBlack: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [selectedLanguage, setSelectedLanguage] = useState<string>('en-IN');
   const [consentGiven, setConsentGiven] = useState<boolean>(false);
   const [session, setSession] = useState<SessionResponse | null>(null);
@@ -222,10 +224,10 @@ const DrEveBlack: React.FC = () => {
             Back to Video Conferencing
           </Button>
 
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Dr. Eve Black</h1>
-          <p className="text-xl text-gray-600">Career Anxiety Specialist</p>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">{t('psychologist_pages.eve_black.title')}</h1>
+          <p className="text-xl text-gray-600">{t('psychologist_pages.eve_black.subtitle')}</p>
           <p className="text-sm text-gray-500 mt-2">
-            Specializes in helping with work-related stress, career transitions, and professional anxiety management.
+            {t('psychologist_pages.eve_black.description')}
           </p>
         </header>
 
