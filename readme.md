@@ -479,40 +479,114 @@ node --version  # Should be 18+
 - `GET /health` - AI service health check
 - `POST /api/summarize/` - Generate session summary
 
-## 🚀 Deployment Guide
+## 🚀 Free Cloud Deployment Guide
 
-### Production Environment
+### 🎯 Recommended Platforms
+- **Frontend**: [Vercel](https://vercel.com) (Free tier: 100GB/month, auto-deploy from GitHub)
+- **Backend & AI Service**: [Railway](https://railway.app) (Free tier: $5 credit, PostgreSQL included)
+- **Database**: Railway PostgreSQL (No additional cost)
+- **Monitoring**: Built-in with both platforms
+
+### Estimated Monthly Costs:
+- **Development/Testing**: $0-5/month within free limits
+- **100-500 users**: $20-60/month
+- **500-2000 users**: $50-120/month
+
+### 📋 Quick Deployment Steps
+
+#### Prerequisites:
+1. Create accounts: [Railway](https://railway.app), [Vercel](https://vercel.com)
+2. Get Google Gemini API key: [Google AI Studio](https://aistudio.google.com/)
+3. Push all code to GitHub repository
+
+#### Step 1: Deploy Backend & Database to Railway
 ```bash
-# Using Docker Compose
-docker-compose up -d --build
-
-# Manual production setup
-export DJANGO_SETTINGS_MODULE=backend.settings
-pip install gunicorn psycopg2-binary
-gunicorn backend.wsgi:application -w 4 -b 0.0.0.0:8000
+# 1. Go to railway.app/new
+# 2. Connect your GitHub repository
+# 3. Railway auto-detects Django backend
+# 4. In Railway dashboard → Add PostgreSQL plugin
+# 5. Set environment variables:
+SECRET_KEY=django-insecure-$(openssl rand -hex 32)
+DEBUG=False
+ALLOWED_HOSTS=your-railway-app.railway.app
+DATABASE_URL=postgresql://... (auto-generated)
+GEMINI_API_KEY=your-gemini-key
 ```
 
-### Environment Variables (Production)
-```env
-# Django
-DJANGO_SETTINGS_MODULE=backend.settings.production
-SECRET_KEY=your-production-secret-key
-DATABASE_URL=postgresql://user:password@host:5432/db
-
-# AI Service
-GEMINI_API_KEY=your-production-gemini-key
-GOOGLE_CLOUD_PROJECT=your-project-id
+#### Step 2: Deploy AI Service to Railway
+```bash
+# 1. In Railway project → Add Service
+# 2. Connect same GitHub repo, set root directory: ai_service/
+# 3. Set environment variables:
 PORT=8001
-
-# Redis (for session management)
-REDIS_URL=redis://localhost:6379/0
+GEMINI_API_KEY=your-gemini-key
+GOOGLE_CLOUD_PROJECT=your-gcp-project
 ```
 
-### Scaling Considerations
-- **Load Balancing**: Nginx reverse proxy with multiple AI service instances
-- **Database Clustering**: Read replicas for analytics workloads
-- **CDN Integration**: Global content delivery for static assets
-- **Monitoring**: Comprehensive logging with ELK stack
+#### Step 3: Deploy Frontend to Vercel
+```bash
+# 1. Go to vercel.com/new
+# 2. Connect GitHub repository
+# 3. Set root directory: frontend/
+# 4. Set environment variables:
+VITE_API_BASE_URL=https://your-railway-backend.railway.app
+VITE_AI_SERVICE_URL=https://your-railway-ai-service.railway.app
+```
+
+#### Step 4: Test Your Live Application
+```bash
+# Test endpoints:
+curl https://your-backend.railway.app/api/health/
+curl https://your-ai-service.railway.app/health
+
+# Visit your Vercel URL to use the app!
+```
+
+### 📚 Detailed Deployment Guide
+For complete step-by-step instructions with screenshots and troubleshooting:
+- **[`deployment_steps.md`](deployment_steps.md)**: Comprehensive deployment walkthrough
+- **[`deployment_guide.md`](deployment_guide.md)**: Platform comparisons and architecture
+
+### 🐳 Local Development with Docker
+```bash
+# Quick local setup (optional):
+docker-compose up --build
+# Access at http://localhost:3000
+```
+
+### ⚙️ Production Configuration
+```bash
+# Environment files created:
+backend/.env.production.example    # Django production config
+ai_service/.env.example           # AI service config
+frontend/vercel.json             # Vercel deployment config
+```
+
+### 🔒 Security & SSL
+- **Automatic SSL**: Both Vercel and Railway provide free SSL certificates
+- **Environment Security**: Use platform-specific secure environment variable storage
+- **Database Encryption**: Railway PostgreSQL automatically encrypts data
+
+### 🚨 Troubleshooting Issues
+```bash
+# Common fixes:
+1. CORS errors: Update CORS_ALLOWED_ORIGINS in Railway
+2. WebSocket issues: Check railway.app firewall settings
+3. Build failures: Check Railway/Vercel build logs
+4. API timeouts: Verify service URLs are correct
+```
+
+### 📊 Monitoring & Scaling
+- **Free Monitoring**: Built into Railway and Vercel dashboards
+- **User Analytics**: Vercel Analytics available
+- **Auto-scaling**: Both platforms scale automatically
+- **Backup**: Railway provides automatic database backups
+
+### 💰 Cost Optimization Tips
+- Monitor Railway usage dashboard to stay within free tier
+- Enable Vercel Analytics only when needed (adds to bill)
+- Optimize API calls to reduce Gemini costs
+- Set up billing alerts to avoid surprises
 
 ## 🧪 Testing & Quality Assurance
 

@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://your-backend.railway.app/api/:path*" },
+    { "source": "/ws/:path*", "destination": "wss://your-ai-service.railway.app/:path*" }
+  ]
+}

@@ -34,10 +34,28 @@ env/
 ai_service/__pycache__
 ai_service/ai_service.egg-info/
 ai_service/.env
+ai_service/.env.template
 ai_service/main_no_imports.py
 ai_service/quick_setup.py
-ai_service/run_service.py
 ai_service/run_from_parent.py
+ai_service/run_service.py
+
+# Deployment
+*.env.local
+*.env.production
+*.env.staging
+.env.*
+.env.example
+.env.production.example
+
+# Development and testing
 /dev_setup.py
 /solution.py
 /test_jwt.py
+
+# OS generated files
+Thumbs.db
+
+# Deployment artifacts
+deploy.sh
+deploy_*.sh

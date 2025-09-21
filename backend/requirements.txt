@@ -62,3 +62,4 @@ google-generativeai==0.3.2
 python-dotenv==1.0.0
 requests==2.32.3
 django-cors-headers==4.3.1
+whitenoise==6.7.0
