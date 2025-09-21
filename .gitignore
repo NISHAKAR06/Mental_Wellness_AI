@@ -62,3 +62,9 @@ deploy_*.sh
 
 /deployment_guide.md
 /deployment_steps.md
+railway_deployment_guide.md
+vercel_deployment_guide.md
+deployment_guide.md
+deployment_steps.md
+deployment_guide.md
+deployment_steps.md
