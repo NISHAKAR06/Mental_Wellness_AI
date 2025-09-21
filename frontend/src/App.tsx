@@ -24,6 +24,7 @@ import NotFound from "./pages/NotFound";
 import SessionGuidelines from "./pages/SessionGuidelines";
 import VideoCall from "./pages/VideoCall";
 import VideoCallSimple from "./pages/VideoCallSimple";
+import Pricing from "./pages/Pricing";
 
 const queryClient = new QueryClient();
 
@@ -50,6 +51,7 @@ const App = () => (
                   <Route path="/dashboard/ai-gaming" element={<AiGaming />} />
                   <Route path="/dashboard/peer-support" element={<PeerSupport />} />
                   <Route path="/dashboard/multilingual" element={<Multilingual />} />
+                  <Route path="/dashboard/pricing" element={<Pricing />} />
                   <Route path="/dashboard/settings" element={<Settings />} />
                 </Route>
                 <Route path="/session-guidelines" element={<SessionGuidelines />} />

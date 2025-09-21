@@ -4,6 +4,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import LoadingTherapy from '@/components/ui/LoadingTherapy';
 import {
   Brain,
   Camera,
@@ -187,6 +188,7 @@ const AIInsights = ({
 export default function EmotionMonitoring() {
   const { t } = useLanguage();
   const [isMonitoring, setIsMonitoring] = useState(false);
+  const [loadingPhase, setLoadingPhase] = useState<'connecting' | 'calibrating' | 'ready' | 'analyzing' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [voiceAnalysis, setVoiceAnalysis] = useState({
     stress_level: 0,
@@ -228,8 +230,16 @@ export default function EmotionMonitoring() {
     }
   };
 
-  const handleToggleMonitoring = () => {
+  const handleToggleMonitoring = async () => {
+    if (!isMonitoring) {
+      // Starting monitoring - show loading states
+      setLoadingPhase('connecting');
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      setLoadingPhase('calibrating');
+      await new Promise(resolve => setTimeout(resolve, 1500));
+    }
     setIsMonitoring((prev) => !prev);
+    setLoadingPhase(null);
   };
 
   useEffect(() => {
@@ -372,7 +382,7 @@ export default function EmotionMonitoring() {
           className="mb-8"
         >
           <h1 className="text-3xl font-bold text-foreground mb-2">
-            {t('emotion monitoring.title')}
+            {t('emotionmonitoring.title')}
           </h1>
           <p className="text-muted-foreground">
             {t('emotionmonitoring.subtitle')}
@@ -397,6 +407,16 @@ export default function EmotionMonitoring() {
             )}
           </Button>
         </motion.div>
+
+        {/* Show therapeutic loading during startup */}
+        {loadingPhase && (
+          <div className="w-full mb-8">
+            <LoadingTherapy
+              phase={loadingPhase}
+              message={loadingPhase === 'ready' ? "Click continue when ready..." : undefined}
+            />
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-200px)]">
           {/* Left Column */}

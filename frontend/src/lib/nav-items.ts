@@ -8,6 +8,7 @@ import {
   Activity,
   Settings,
   MessageSquareHeart,
+  CreditCard,
 } from 'lucide-react';
 
 export const sidebarItems = [
@@ -53,6 +54,13 @@ export const sidebarItems = [
     path: '/dashboard/peer-support',
     translationKey: 'features.peersupport',
     description: 'Community support'
+  },
+  {
+    icon: CreditCard,
+    label: 'Plans & Pricing',
+    path: '/dashboard/pricing',
+    translationKey: 'nav.pricing',
+    description: 'Upgrade plans & pricing'
   },
   {
     icon: Settings,
