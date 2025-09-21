@@ -53,6 +53,9 @@ ai_service/run_service.py
 /solution.py
 /test_jwt.py
 
+# Railway configuration
+railway.json
+
 # OS generated files
 Thumbs.db
 
