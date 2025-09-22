@@ -12,6 +12,9 @@ google-generativeai>=0.3.2
 google-cloud-speech>=2.21.1
 google-cloud-texttospeech>=2.13.0
 
+# Image Processing
+Pillow>=10.0.0
+
 # Environment and Configuration
 python-dotenv>=1.0.0
 
