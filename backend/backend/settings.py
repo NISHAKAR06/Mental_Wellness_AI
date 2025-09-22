@@ -21,8 +21,18 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
+import urllib.parse
+
 # Allowed hosts from environment
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,*.up.railway.app').split(',')
+allowed_hosts_env = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,*.up.railway.app')
+ALLOWED_HOSTS = []
+for host in allowed_hosts_env.split(','):
+    host = host.strip()
+    if host.startswith(('http://', 'https://')):
+        parsed = urllib.parse.urlparse(host)
+        ALLOWED_HOSTS.append(parsed.hostname)
+    else:
+        ALLOWED_HOSTS.append(host)
 
 
 # Application definition
@@ -82,11 +92,10 @@ ASGI_APPLICATION = "backend.asgi.application"
 
 # Database
 
+DATABASE_URL = os.getenv('DATABASE_PUBLIC_URL', 'postgresql://neondb_owner:npg_fH08qnwxoQXa@ep-jolly-brook-adl391p2-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require')
+
 DATABASES = {
-    'default': dj_database_url.config(
-        default='postgresql://neondb_owner:npg_fH08qnwxoQXa@ep-jolly-brook-adl391p2-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require',
-        conn_max_age=600
-    )
+    'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600)
 }
 
 
