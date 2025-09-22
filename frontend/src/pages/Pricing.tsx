@@ -212,7 +212,9 @@ export default function Pricing() {
                   </CardHeader>
 
                   <CardContent className="flex flex-col h-full">
-                    <div className="space-y-3 mb-6">
+
+                    {/* Features List */}
+                    <div className="space-y-3 mb-6 flex-1">
                       {plan.features.map((feature, idx) => (
                         <div key={idx} className="flex items-center gap-3">
                           <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
@@ -221,24 +223,27 @@ export default function Pricing() {
                       ))}
                     </div>
 
-                    <div className="mt-auto space-y-3">
-                      <div className="grid grid-cols-2 gap-4 text-center">
-                        <div>
-                          <div className="text-2xl font-bold text-primary">
+                    {/* Bottom Section - Stats & Button */}
+                    <div className="mt-auto pt-4 border-t border-muted">
+                      {/* Stats Grid */}
+                      <div className="grid grid-cols-2 gap-4 text-center mb-4 px-2">
+                        <div className="space-y-1">
+                          <div className="text-lg font-bold text-primary leading-tight">
                             {plan.therapistHours > 0 ? `${plan.therapistHours}h` : 'AI'}
                           </div>
-                          <div className="text-xs text-muted-foreground">{t('pricing.therapy_time')}</div>
+                          <div className="text-xs text-muted-foreground leading-tight">{t('pricing.therapy_time')}</div>
                         </div>
-                        <div>
-                          <div className="text-2xl font-bold text-primary">
+                        <div className="space-y-1">
+                          <div className="text-lg font-bold text-primary leading-tight">
                             {plan.sessionsPerMonth === -1 ? '∞' : plan.sessionsPerMonth}
                           </div>
-                          <div className="text-xs text-muted-foreground">{t('pricing.sessions_month')}</div>
+                          <div className="text-xs text-muted-foreground leading-tight">{t('pricing.sessions_month')}</div>
                         </div>
                       </div>
 
+                      {/* Button */}
                       <Button
-                        className={`w-full mt-4 ${plan.popular ? 'btn-hero shadow-lg transform hover:scale-105 transition-all' : plan.id === 'enterprise' ? 'bg-secondary hover:bg-secondary/90' : ''}`}
+                        className={`w-full h-12 text-sm font-semibold ${plan.popular ? 'btn-hero shadow-lg transform hover:scale-105 transition-all' : plan.id === 'enterprise' ? 'bg-secondary hover:bg-secondary/90' : ''}`}
                         variant={plan.id === 'enterprise' ? 'secondary' : 'default'}
                         size="lg"
                       >

@@ -274,20 +274,35 @@ export default function EmotionMonitoring() {
       startVideo(); // Start video after WebSocket is set up
 
       ws.current.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        if (data.emotions) {
-          const { happy, neutral, anxious, stressed } = data.emotions;
-          setEmotions([
-            { name: t('emotionmonitoring.happyclear'), value: happy, color: 'bg-green-500', icon: Smile },
-            { name: t('emotionmonitoring.neutral'), value: neutral, color: 'bg-yellow-500', icon: Meh },
-            { name: t('emotionmonitoring.anxious'), value: anxious, color: 'bg-orange-500', icon: Frown },
-            { name: t('emotionmonitoring.stressed'), value: stressed, color: 'bg-red-500', icon: Frown }
-          ]);
-          // Calculate vital signs automatically from emotion data
-          calculateVitalSigns(data.emotions);
-        }
-        if (data.voice_analysis) {
-          setVoiceAnalysis(data.voice_analysis);
+        try {
+          const data = JSON.parse(event.data);
+          console.log('Emotion monitoring received:', data); // Debug log
+
+          if (data.emotions) {
+            const { happy, neutral, anxious, stressed } = data.emotions;
+
+            // Validate emotion values are numbers
+            if (typeof happy === 'number' && typeof neutral === 'number' &&
+                typeof anxious === 'number' && typeof stressed === 'number') {
+
+              setEmotions([
+                { name: t('emotionmonitoring.happyclear'), value: happy, color: 'bg-green-500', icon: Smile },
+                { name: t('emotionmonitoring.neutral'), value: neutral, color: 'bg-yellow-500', icon: Meh },
+                { name: t('emotionmonitoring.anxious'), value: anxious, color: 'bg-orange-500', icon: Frown },
+                { name: t('emotionmonitoring.stressed'), value: stressed, color: 'bg-red-500', icon: Frown }
+              ]);
+
+              // Calculate vital signs automatically from emotion data
+              calculateVitalSigns(data.emotions);
+              console.log('Emotions updated:', { happy, neutral, anxious, stressed });
+            }
+          }
+
+          if (data.voice_analysis) {
+            setVoiceAnalysis(data.voice_analysis);
+          }
+        } catch (error) {
+          console.error('Error parsing WebSocket message:', error);
         }
       };
 
