@@ -82,8 +82,7 @@ class WebSocketEmotionHandler:
 
             # Send analysis back to client
             await websocket.send_json({
-                'type': 'emotions',
-                'data': emotions
+                'emotions': emotions
             })
 
             print(f"🎭 Emotion analysis sent for session {session_id}")

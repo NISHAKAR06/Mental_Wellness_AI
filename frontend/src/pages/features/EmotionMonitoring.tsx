@@ -195,6 +195,30 @@ export default function EmotionMonitoring() {
     facial_anxious: 0,
     facial_stressed: 0
   });
+
+  // Calculate voice stress and facial tension from emotion data
+  const calculateVitalSigns = (emotionData) => {
+    if (!emotionData) return;
+
+    const { happy, neutral, anxious, stressed } = emotionData;
+
+    // Calculate voice stress based on emotion patterns
+    // High anxious/stressed levels typically correlate with voice stress
+    let voiceStress = anxious + stressed;
+
+    // Normalize to 0-100 range
+    voiceStress = Math.min(voiceStress, 100);
+
+    // Facial tension based on negative emotions
+    const facialTension = anxious * 0.8 + stressed * 0.7;
+
+    // Update voice analysis for vital signs
+    setVoiceAnalysis({
+      stress_level: voiceStress,
+      facial_anxious: anxious,
+      facial_stressed: stressed
+    });
+  };
   const [emotions, setEmotions] = useState([
     { name: t('emotionmonitoring.happyclear'), value: 0, color: 'bg-green-500', icon: Smile },
     { name: t('emotionmonitoring.neutral'), value: 0, color: 'bg-yellow-500', icon: Meh },
@@ -259,6 +283,8 @@ export default function EmotionMonitoring() {
             { name: t('emotionmonitoring.anxious'), value: anxious, color: 'bg-orange-500', icon: Frown },
             { name: t('emotionmonitoring.stressed'), value: stressed, color: 'bg-red-500', icon: Frown }
           ]);
+          // Calculate vital signs automatically from emotion data
+          calculateVitalSigns(data.emotions);
         }
         if (data.voice_analysis) {
           setVoiceAnalysis(data.voice_analysis);
