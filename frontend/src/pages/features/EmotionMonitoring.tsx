@@ -231,6 +231,8 @@ export default function EmotionMonitoring() {
     facial_anxious: 0,
     facial_stressed: 0,
   });
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Calculate voice stress and facial tension from emotion data
   const calculateVitalSigns = (emotionData) => {
@@ -333,6 +335,7 @@ export default function EmotionMonitoring() {
         ws.current.onopen = () => {
           console.log('✅ Emotion monitoring WebSocket connected successfully');
           console.log('🎥 Starting video stream...');
+          console.log('🔗 WebSocket URL:', wsUrl);
           startVideo(); // Start video after WebSocket connection is established
         };
 
@@ -347,7 +350,7 @@ export default function EmotionMonitoring() {
         ws.current.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
-            console.log("Emotion monitoring received:", data); // Debug log
+            console.log("📨 Raw WebSocket message received:", data);
 
             if (data.emotions) {
               const { happy, neutral, anxious, stressed } = data.emotions;
@@ -359,7 +362,17 @@ export default function EmotionMonitoring() {
                 typeof anxious === "number" &&
                 typeof stressed === "number"
               ) {
-                console.log("🎭 Updating emotions:", { happy, neutral, anxious, stressed }); // More specific log
+                console.log("🎭 ML Emotion analysis received:", {
+                  happy,
+                  neutral,
+                  anxious,
+                  stressed,
+                  dominant: data.dominant_emotion,
+                  confidence: data.confidence,
+                  face_detected: data.face_detected
+                });
+
+                // Update emotions state
                 setEmotions([
                   {
                     name: t("emotionmonitoring.happyclear"),
@@ -389,14 +402,47 @@ export default function EmotionMonitoring() {
 
                 // Calculate vital signs automatically from emotion data
                 calculateVitalSigns(data.emotions);
+
+                // Update last update timestamp and processing status
+                setLastUpdate(new Date());
+                setIsProcessing(false);
+
+                // Show face detection status
+                if (data.face_detected) {
+                  console.log(`✅ Face detected with ${data.confidence}% confidence - Analysis successful!`);
+                } else {
+                  console.log("⚠️ No face detected in image - Using default values");
+                }
+
+                // Log total emotion percentage to verify it adds up to 100%
+                const total = happy + neutral + anxious + stressed;
+                console.log(`📊 Total emotion percentage: ${total.toFixed(1)}% (should be 100%)`);
+
+              } else {
+                console.error("❌ Invalid emotion data types:", {
+                  happy: typeof happy,
+                  neutral: typeof neutral,
+                  anxious: typeof anxious,
+                  stressed: typeof stressed
+                });
               }
+            } else {
+              console.log("📭 No emotions data in message:", Object.keys(data));
             }
 
             if (data.voice_analysis) {
+              console.log("🎤 Voice analysis received:", data.voice_analysis);
               setVoiceAnalysis(data.voice_analysis);
             }
+
+            if (data.type === 'error') {
+              console.error("🚨 Backend error:", data.message);
+              setError(`Backend error: ${data.message}`);
+            }
+
           } catch (error) {
-            console.error("Error parsing WebSocket message:", error);
+            console.error("❌ Error parsing WebSocket message:", error);
+            console.error("Raw message data:", event.data);
           }
         };
       }
@@ -705,6 +751,17 @@ export default function EmotionMonitoring() {
                   <CardTitle className="flex items-center gap-2">
                     <Smile className="h-5 w-5" />
                     {t("emotionmonitoring.emotion_analysis")}
+                    {/* Status indicator */}
+                    <div className="flex items-center gap-2 ml-auto">
+                      {isMonitoring && (
+                        <div className="flex items-center gap-1">
+                          <div className={`w-2 h-2 rounded-full ${lastUpdate ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'}`}></div>
+                          <span className="text-xs text-muted-foreground">
+                            {lastUpdate ? `Updated ${lastUpdate.toLocaleTimeString()}` : 'Connecting...'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

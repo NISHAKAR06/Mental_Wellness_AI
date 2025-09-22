@@ -8,42 +8,60 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 from dotenv import load_dotenv
 
-# Direct imports for running from ai_service directory
-try:
-    from ai_service.core.ws_voice import WebSocketVoiceHandler
-    from ai_service.core.ws_emotions import WebSocketEmotionHandler
-    from ai_service.core.agents import get_agent
-    from ai_service.core.risk import classify_risk
-    from ai_service.core.llm import generate_reply
-    from ai_service.core.memory import MemoryManager
-    from ai_service.core.emotion_integration import EmotionIntegrator
-except ImportError:
-    # Fallback to local imports if package structure fails
-    try:
-        from .core.ws_voice import WebSocketVoiceHandler
-        from .core.ws_emotions import WebSocketEmotionHandler
-        from .core.agents import get_agent
-        from .core.risk import classify_risk
-        from .core.llm import generate_reply
-        from .core.memory import MemoryManager
-        from .core.emotion_integration import EmotionIntegrator
-    except ImportError:
-        # Last fallback - direct imports
-        import core.ws_voice as ws_voice_mod
-        import core.ws_emotions as ws_emotions_mod
-        import core.agents as agents_mod
-        import core.risk as risk_mod
-        import core.llm as llm_mod
-        import core.memory as memory_mod
-        import core.emotion_integration as emotion_mod
+# Robust imports for deployment
+def import_with_fallback(module_name: str, class_name: str = None):
+    """Import module with multiple fallback strategies"""
+    import sys
+    import os
 
-        WebSocketVoiceHandler = ws_voice_mod.WebSocketVoiceHandler
-        WebSocketEmotionHandler = ws_emotions_mod.WebSocketEmotionHandler
-        get_agent = agents_mod.get_agent
-        classify_risk = risk_mod.classify_risk
-        generate_reply = llm_mod.generate_reply
-        MemoryManager = memory_mod.MemoryManager
-        EmotionIntegrator = emotion_mod.EmotionIntegrator
+    # Try different import strategies
+    strategies = [
+        # Strategy 1: Direct absolute import
+        lambda: __import__(f'ai_service.core.{module_name}', fromlist=[class_name or module_name]),
+        # Strategy 2: Relative import
+        lambda: __import__(f'.core.{module_name}', fromlist=[class_name or module_name], level=1),
+        # Strategy 3: Direct path import
+        lambda: __import__(module_name, fromlist=[class_name or module_name]),
+    ]
+
+    for strategy in strategies:
+        try:
+            return strategy()
+        except ImportError:
+            continue
+
+    # Final fallback - add current directory to path
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    if current_dir not in sys.path:
+        sys.path.insert(0, current_dir)
+
+    try:
+        return __import__(f'core.{module_name}', fromlist=[class_name or module_name])
+    except ImportError as e:
+        raise ImportError(f"Failed to import {module_name}: {e}")
+
+# Import all required modules
+try:
+    ws_voice_mod = import_with_fallback('ws_voice', 'WebSocketVoiceHandler')
+    ws_emotions_mod = import_with_fallback('ws_emotions', 'WebSocketEmotionHandler')
+    agents_mod = import_with_fallback('agents', 'get_agent')
+    risk_mod = import_with_fallback('risk', 'classify_risk')
+    llm_mod = import_with_fallback('llm', 'generate_reply')
+    memory_mod = import_with_fallback('memory', 'MemoryManager')
+    emotion_mod = import_with_fallback('emotion_integration', 'EmotionIntegrator')
+
+    WebSocketVoiceHandler = ws_voice_mod.WebSocketVoiceHandler
+    WebSocketEmotionHandler = ws_emotions_mod.WebSocketEmotionHandler
+    get_agent = agents_mod.get_agent
+    classify_risk = risk_mod.classify_risk
+    generate_reply = llm_mod.generate_reply
+    MemoryManager = memory_mod.MemoryManager
+    EmotionIntegrator = emotion_mod.EmotionIntegrator
+
+except ImportError as e:
+    print(f"❌ Critical import error: {e}")
+    print("This may indicate missing dependencies or incorrect file structure")
+    raise
 
 load_dotenv()
 

@@ -1,6 +1,6 @@
 """
 WebSocket emotion detection handler for AI Psychologist service
-Real-time emotion analysis from image/video frames
+Real-time emotion analysis from image/video frames using pre-trained ML models
 """
 import json
 import asyncio
@@ -11,7 +11,26 @@ import io
 from typing import Dict, List, Optional, Any
 from fastapi import WebSocket, WebSocketDisconnect
 import os
+import logging
 from dotenv import load_dotenv
+
+# Import the emotion detector - robust import for deployment
+try:
+    # Try relative import first (when run as package)
+    from .emotion_detector import emotion_detector
+except ImportError:
+    try:
+        # Try absolute import (when run directly)
+        from ai_service.core.emotion_detector import emotion_detector
+    except ImportError:
+        # Final fallback - add parent directory to path and import
+        import sys
+        import os
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        parent_dir = os.path.dirname(current_dir)
+        if parent_dir not in sys.path:
+            sys.path.insert(0, parent_dir)
+        from emotion_detector import emotion_detector
 
 load_dotenv()
 
@@ -37,10 +56,24 @@ class WebSocketEmotionHandler:
                 'last_analysis': None
             }
 
-            # Main message loop
+            # Main message loop - handle both text and binary data
             while True:
-                message = await websocket.receive_json()
-                await self._handle_message(websocket, session_id, message)
+                try:
+                    # Try to receive text data first
+                    message = await websocket.receive_text()
+                    data = json.loads(message)
+                    await self._handle_message(websocket, session_id, data)
+                except json.JSONDecodeError:
+                    # If text parsing fails, try binary data
+                    try:
+                        binary_data = await websocket.receive_bytes()
+                        await self._handle_binary_data(websocket, session_id, binary_data)
+                    except Exception as e:
+                        print(f"Error receiving data: {e}")
+                        break
+                except Exception as e:
+                    print(f"Error in message loop: {e}")
+                    break
 
         except WebSocketDisconnect:
             print(f"Emotion WebSocket disconnected for session: {session_id}")
@@ -58,23 +91,40 @@ class WebSocketEmotionHandler:
         else:
             print(f"Unknown message type: {message_type}")
 
+    async def _handle_binary_data(self, websocket: WebSocket, session_id: str, binary_data: bytes):
+        """Handle binary image data"""
+        try:
+            # Convert binary data to base64 for processing
+            image_data = base64.b64encode(binary_data).decode('utf-8')
+
+            # Create message format expected by _analyze_emotion
+            message = {
+                'type': 'image',
+                'image_data': f'data:image/jpeg;base64,{image_data}'
+            }
+
+            await self._analyze_emotion(websocket, session_id, message)
+
+        except Exception as e:
+            print(f"Error handling binary data: {e}")
+            await websocket.send_json({
+                'type': 'error',
+                'message': f'Binary data processing failed: {str(e)}'
+            })
+
     async def _analyze_emotion(self, websocket: WebSocket, session_id: str, message: Dict[str, Any]):
-        """Process image and return emotion analysis"""
+        """Process image and return emotion analysis using pre-trained ML models"""
         try:
             # Get image data
             image_data = message.get('image_data')
             if not image_data:
                 return
 
-            # Decode base64 image
-            if ',' in image_data:
-                image_data = image_data.split(',')[1]
+            # Use the pre-trained emotion detector
+            emotion_result = emotion_detector.detect_emotions(image_data)
 
-            image_bytes = base64.b64decode(image_data)
-
-            # Here you would implement real emotion detection
-            # For now, let's generate realistic emotion data
-            emotions = self._generate_emotion_analysis(session_id, image_bytes)
+            # Extract emotions for frontend
+            emotions = emotion_result['emotions']
 
             # Store last analysis
             self.active_sessions[session_id]['last_analysis'] = emotions
@@ -82,69 +132,23 @@ class WebSocketEmotionHandler:
 
             # Send analysis back to client
             await websocket.send_json({
-                'emotions': emotions
+                'emotions': emotions,
+                'dominant_emotion': emotion_result['dominant_emotion'],
+                'confidence': emotion_result['confidence'],
+                'face_detected': emotion_result['face_detected']
             })
 
-            print(f"🎭 Emotion analysis sent for session {session_id}")
+            print(f"🎭 ML Emotion analysis sent for session {session_id}: Happy={emotions['happy']}%, Neutral={emotions['neutral']}%, Anxious={emotions['anxious']}%, Stressed={emotions['stressed']}%, Dominant={emotion_result['dominant_emotion']}")
 
         except Exception as e:
-            print(f"Error analyzing emotion: {e}")
+            print(f"Error analyzing emotion with ML model: {e}")
             # Send error response
             await websocket.send_json({
                 'type': 'error',
                 'message': f'Emotion analysis failed: {str(e)}'
             })
 
-    def _generate_emotion_analysis(self, session_id: str, image_bytes: bytes) -> Dict[str, Any]:
-        """Generate emotion analysis (placeholder implementation)"""
-        # In production, this would use ML models like face-api.js equivalent on backend
-        # For now, generate realistic emotion data
 
-        import random
-        import hashlib
-
-        # Use consistent random seed based on image data for stability
-        seed_value = int(hashlib.md5(image_bytes[:100]).hexdigest(), 16)
-        random.seed(seed_value % 1000)
-
-        # Generate primary emotion
-        primary_emotions = ['happy', 'neutral', 'anxious', 'stressed']
-        dominant_emotion = random.choice(primary_emotions)
-
-        # Create emotion values with bias toward dominant
-        emotions = {
-            'happy': 0,
-            'neutral': 0,
-            'anxious': 0,
-            'stressed': 0
-        }
-
-        # Set dominant emotion high (50-90%)
-        emotions[dominant_emotion] = random.uniform(0.5, 0.9)
-
-        # Distribute remaining percentage
-        remaining = 1.0 - emotions[dominant_emotion]
-        other_emotions = [e for e in emotions.keys() if e != dominant_emotion]
-        for emotion in other_emotions[:-1]:
-            emotions[emotion] = random.uniform(0, remaining * 0.8)
-            remaining -= emotions[emotion]
-
-        # Assign remainder to last emotion
-        last_emotion = other_emotions[-1]
-        emotions[last_emotion] = remaining
-
-        # Convert to percentage format
-        result_emotions = {}
-        for emotion, value in emotions.items():
-            result_emotions[emotion] = round(value * 100, 1)
-
-        # Return in format expected by frontend
-        return {
-            'happy': result_emotions['happy'],
-            'neutral': result_emotions['neutral'],
-            'anxious': result_emotions['anxious'],
-            'stressed': result_emotions['stressed']
-        }
 
     async def _cleanup_session(self, session_id: str):
         """Clean up session resources"""
