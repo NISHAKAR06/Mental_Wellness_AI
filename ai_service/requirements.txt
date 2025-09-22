@@ -1,9 +1,9 @@
-# Core FastAPI Dependencies - Compatible versions
-fastapi>=0.100.0,<0.105.0
+# Core FastAPI Dependencies - TensorFlow 2.13.1 compatible versions
+fastapi>=0.100.0,<0.104.0
 uvicorn[standard]>=0.23.0,<0.25.0
 python-multipart>=0.0.6
 python-jose[cryptography]>=3.3.0
-pydantic>=2.0.0,<2.6.0
+pydantic>=2.0.0,<2.4.0
 pydantic-settings>=2.0.0
 requests>=2.31.0
 PyJWT>=2.6.0
