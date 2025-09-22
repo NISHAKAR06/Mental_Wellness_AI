@@ -10,6 +10,8 @@ import {
 function Model({ url, scale = 1 }: { url: string; scale?: number }) {
   const { scene } = useGLTF(url);
 
+  if (!scene) return null;
+
   return (
     <primitive
       object={scene}
