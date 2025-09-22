@@ -88,6 +88,11 @@ async def websocket_emotion_endpoint(websocket: WebSocket):
     # Use a fixed session ID for emotion monitoring (could be enhanced for user sessions)
     await emotion_handler.handle_connection(websocket, "emotion_session")
 
+@app.websocket("/ws/emotions/{session_id}")
+async def websocket_emotion_endpoint_with_session(websocket: WebSocket, session_id: str):
+    # Handle emotion monitoring with specific session ID
+    await emotion_handler.handle_connection(websocket, session_id)
+
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}

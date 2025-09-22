@@ -331,7 +331,8 @@ export default function EmotionMonitoring() {
         ws.current = new WebSocket(wsUrl);
 
         ws.current.onopen = () => {
-          console.log('Emotion monitoring WebSocket connected');
+          console.log('✅ Emotion monitoring WebSocket connected successfully');
+          console.log('🎥 Starting video stream...');
           startVideo(); // Start video after WebSocket connection is established
         };
 

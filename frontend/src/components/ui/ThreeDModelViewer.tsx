@@ -1,20 +1,15 @@
 import React, { Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
-import {
-  OrbitControls,
-  useGLTF,
-  Environment,
-  Html,
-} from "@react-three/drei";
+import { OrbitControls, useGLTF, Environment, Html } from "@react-three/drei";
 
 function Model({ url, scale = 1 }: { url: string; scale?: number }) {
   // Add error boundary and safer GLTF loading
   try {
-    console.log('Loading 3D model:', url);
+    console.log("Loading 3D model:", url);
     const { scene } = useGLTF(url);
 
     if (!scene) {
-      console.warn('No scene found in GLTF file:', url);
+      console.warn("No scene found in GLTF file:", url);
       return (
         <mesh visible={false}>
           <boxGeometry args={[0.1, 0.1, 0.1]} />
@@ -22,7 +17,7 @@ function Model({ url, scale = 1 }: { url: string; scale?: number }) {
       );
     }
 
-    console.log('✅ 3D model loaded successfully:', url);
+    console.log("✅ 3D model loaded successfully:", url);
     return (
       <primitive
         object={scene}
@@ -32,7 +27,7 @@ function Model({ url, scale = 1 }: { url: string; scale?: number }) {
       />
     );
   } catch (error) {
-    console.error('❌ GLTF loading error for', url, ':', error);
+    console.error("❌ GLTF loading error for", url, ":", error);
     return (
       <mesh visible={false}>
         <boxGeometry args={[0.1, 0.1, 0.1]} />
@@ -58,16 +53,21 @@ export function ThreeDModelViewer({
 }: ThreeDModelViewerProps) {
   // Debug: Check if model file exists
   React.useEffect(() => {
-    fetch(modelUrl, { method: 'HEAD' })
-      .then(response => {
+    fetch(modelUrl, { method: "HEAD" })
+      .then((response) => {
         if (response.ok) {
-          console.log('✅ 3D model file exists:', modelUrl);
+          console.log("✅ 3D model file exists:", modelUrl);
         } else {
-          console.error('❌ 3D model file not found:', modelUrl, 'Status:', response.status);
+          console.error(
+            "❌ 3D model file not found:",
+            modelUrl,
+            "Status:",
+            response.status
+          );
         }
       })
-      .catch(error => {
-        console.error('❌ Error checking 3D model file:', modelUrl, error);
+      .catch((error) => {
+        console.error("❌ Error checking 3D model file:", modelUrl, error);
       });
   }, [modelUrl]);
 
