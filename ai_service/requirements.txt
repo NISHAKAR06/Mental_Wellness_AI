@@ -16,7 +16,7 @@ google-cloud-texttospeech==2.16.0
 # Image Processing
 Pillow==10.1.0
 
-# ML/Emotion Detection - Optimized versions
+# ML/Emotion Detection - Compatible versions
 opencv-python==4.8.1.78
 numpy==1.24.3
 tensorflow==2.13.1
@@ -30,5 +30,5 @@ python-dotenv==1.0.0
 pytest==7.4.3
 httpx==0.25.2
 
-# Compatibility fixes for Python typing
-typing-extensions==4.8.0
+# Compatibility fixes for Python typing - Compatible with TensorFlow 2.13.1
+typing-extensions>=4.5.0,<4.6.0

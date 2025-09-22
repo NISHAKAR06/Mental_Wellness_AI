@@ -61,7 +61,7 @@ test_*.py
 # Development files
 .devcontainer/
 .dockerignore
-Dockerfile*
+Dockerfile.multistage
 docker-compose*
 
 # Node modules (if any)
