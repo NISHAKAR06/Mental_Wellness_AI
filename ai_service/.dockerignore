@@ -1,0 +1,96 @@
+# Git files
+.git
+.gitignore
+.gitattributes
+
+# Python cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.pytest_cache
+.coverage
+.tox
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.git
+.mypy_cache
+.pytest_cache
+.hypothesis
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Documentation
+README.md
+DEPLOYMENT.md
+*.md
+
+# Test files
+tests/
+test_*.py
+*_test.py
+
+# Development files
+.devcontainer/
+.dockerignore
+Dockerfile*
+docker-compose*
+
+# Node modules (if any)
+node_modules/
+
+# Large files
+*.mp4
+*.avi
+*.mov
+*.wav
+*.mp3
+*.zip
+*.tar.gz
+*.rar
+
+# Model files (if stored locally)
+*.h5
+*.pb
+*.tflite
+*.onnx
+*.pkl
+*.joblib
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+.temp/

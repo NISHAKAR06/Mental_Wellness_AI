@@ -76,15 +76,20 @@ uvicorn main:app --host 0.0.0.0 --port 8001
 
 ### Docker Deployment
 
-1. **Build Docker Image**
+1. **Main Dockerfile (Recommended for Railway/Render)**
    ```bash
-   docker build -t ai-psychologist-service .
-   ```
+   # Build - Railway automatically uses ai_service/Dockerfile
+   docker build -t ai-psychologist-service -f ai_service/Dockerfile .
 
-2. **Run Container**
-   ```bash
+   # Run
    docker run -p 8001:8001 ai-psychologist-service
    ```
+
+2. **Railway Specific Optimization**
+   - Railway automatically uses `ai_service/Dockerfile` when root directory is set to `ai_service`
+   - Optimized for Railway's caching system
+   - Set build timeout to 15 minutes in Railway settings if needed
+   - No need to specify Dockerfile path in Railway settings
 
 ## WebSocket Configuration
 
