@@ -1,6 +1,6 @@
 {
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://mainbackend-production-29cf.up.railway.app" },
-    { "source": "/ws/:path*", "destination": "https://aiservicebackend-production.up.railway.app" }
+    { "source": "/api/:path*", "destination": "https://mainbackend-production-29cf.up.railway.app/api/:path*" },
+    { "source": "/ws/:path*", "destination": "https://aiservicebackend-production.up.railway.app/ws/:path*" }
   ]
 }

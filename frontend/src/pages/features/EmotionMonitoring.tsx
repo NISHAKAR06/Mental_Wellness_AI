@@ -244,9 +244,7 @@ export default function EmotionMonitoring() {
 
   useEffect(() => {
     if (isMonitoring) {
-      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsHost = process.env.NODE_ENV === 'production' ? window.location.host : 'localhost:8000';
-      const wsUrl = `${wsProtocol}//${wsHost}/ws/emotions/`;
+      const wsUrl = import.meta.env.VITE_WS_BASE_URL || 'ws://localhost:8000/ws/emotions/';
       ws.current = new WebSocket(wsUrl);
 
       startVideo(); // Start video after WebSocket is set up
