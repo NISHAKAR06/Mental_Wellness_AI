@@ -5,13 +5,17 @@ import path from "path";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
-    host: "::",
-    port: 8080,
+
+    // in production remove this two lines
+    host: "0.0.0.0", // More reliable than "::"
+    port: 5173, // Standard Vite port
     proxy: {
       '/ws': {
         target: 'ws://localhost:8000',
         ws: true,
         secure: false,
+        // in production remove this line
+        changeOrigin: true,
       },
       '/api': {
         target: 'http://localhost:8000',

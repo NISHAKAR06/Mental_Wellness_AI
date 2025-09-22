@@ -324,93 +324,91 @@ export default function EmotionMonitoring() {
 
   useEffect(() => {
     if (isMonitoring) {
-      const wsUrl =
-        import.meta.env.VITE_WS_BASE_URL || "ws://localhost:8000/ws/emotions/";
-      ws.current = new WebSocket(wsUrl);
+      // Only create WebSocket if not already connected
+      if (!ws.current || ws.current.readyState === WebSocket.CLOSED) {
+        const wsUrl =
+          import.meta.env.VITE_WS_BASE_URL || "ws://localhost:8000/ws/emotions/";
+        ws.current = new WebSocket(wsUrl);
 
-      startVideo(); // Start video after WebSocket is set up
+        ws.current.onopen = () => {
+          console.log('Emotion monitoring WebSocket connected');
+          startVideo(); // Start video after WebSocket connection is established
+        };
 
-      ws.current.onopen = () => {
-        console.log('Emotion monitoring WebSocket connected');
-      };
+        ws.current.onclose = (event) => {
+          console.log('Emotion monitoring WebSocket closed:', event.code, event.reason);
+        };
 
-      ws.current.onclose = (event) => {
-        console.log('Emotion monitoring WebSocket closed:', event.code, event.reason);
-      };
+        ws.current.onerror = (error) => {
+          console.error('Emotion monitoring WebSocket error:', error);
+        };
 
-      ws.current.onerror = (error) => {
-        console.error('Emotion monitoring WebSocket error:', error);
-      };
+        ws.current.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            console.log("Emotion monitoring received:", data); // Debug log
 
-      ws.current.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          console.log("Emotion monitoring received:", data); // Debug log
+            if (data.emotions) {
+              const { happy, neutral, anxious, stressed } = data.emotions;
 
-          if (data.emotions) {
-            const { happy, neutral, anxious, stressed } = data.emotions;
+              // Validate emotion values are numbers
+              if (
+                typeof happy === "number" &&
+                typeof neutral === "number" &&
+                typeof anxious === "number" &&
+                typeof stressed === "number"
+              ) {
+                console.log("🎭 Updating emotions:", { happy, neutral, anxious, stressed }); // More specific log
+                setEmotions([
+                  {
+                    name: t("emotionmonitoring.happyclear"),
+                    value: happy,
+                    color: "bg-green-500",
+                    icon: Smile,
+                  },
+                  {
+                    name: t("emotionmonitoring.neutral"),
+                    value: neutral,
+                    color: "bg-yellow-500",
+                    icon: Meh,
+                  },
+                  {
+                    name: t("emotionmonitoring.anxious"),
+                    value: anxious,
+                    color: "bg-orange-500",
+                    icon: Frown,
+                  },
+                  {
+                    name: t("emotionmonitoring.stressed"),
+                    value: stressed,
+                    color: "bg-red-500",
+                    icon: Frown,
+                  },
+                ]);
 
-            // Validate emotion values are numbers
-            if (
-              typeof happy === "number" &&
-              typeof neutral === "number" &&
-              typeof anxious === "number" &&
-              typeof stressed === "number"
-            ) {
-              setEmotions([
-                {
-                  name: t("emotionmonitoring.happyclear"),
-                  value: happy,
-                  color: "bg-green-500",
-                  icon: Smile,
-                },
-                {
-                  name: t("emotionmonitoring.neutral"),
-                  value: neutral,
-                  color: "bg-yellow-500",
-                  icon: Meh,
-                },
-                {
-                  name: t("emotionmonitoring.anxious"),
-                  value: anxious,
-                  color: "bg-orange-500",
-                  icon: Frown,
-                },
-                {
-                  name: t("emotionmonitoring.stressed"),
-                  value: stressed,
-                  color: "bg-red-500",
-                  icon: Frown,
-                },
-              ]);
-
-              // Calculate vital signs automatically from emotion data
-              calculateVitalSigns(data.emotions);
-              console.log("Emotions updated:", {
-                happy,
-                neutral,
-                anxious,
-                stressed,
-              });
+                // Calculate vital signs automatically from emotion data
+                calculateVitalSigns(data.emotions);
+              }
             }
-          }
 
-          if (data.voice_analysis) {
-            setVoiceAnalysis(data.voice_analysis);
+            if (data.voice_analysis) {
+              setVoiceAnalysis(data.voice_analysis);
+            }
+          } catch (error) {
+            console.error("Error parsing WebSocket message:", error);
           }
-        } catch (error) {
-          console.error("Error parsing WebSocket message:", error);
-        }
-      };
+        };
+      }
 
       return () => {
-        stopVideo();
-        if (mediaRecorderRef.current) {
-          mediaRecorderRef.current.stop();
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
         }
         if (ws.current) {
           ws.current.close();
+          ws.current = null;
         }
+        stopVideo();
         setEmotions([
           {
             name: t("emotionmonitoring.happyclear"),
@@ -465,28 +463,45 @@ export default function EmotionMonitoring() {
     }
   }, [isMonitoring, videoRef.current?.srcObject]);
 
+  // Send emotion data continuously when monitoring is active
   useEffect(() => {
-    if (isMonitoring && videoRef.current) {
-      intervalRef.current = setInterval(() => {
+    if (isMonitoring && ws.current && videoRef.current?.srcObject) {
+      // Function to capture and send emotion data
+      const sendEmotionData = () => {
         if (
           videoRef.current &&
           videoRef.current.videoWidth > 0 &&
           ws.current &&
           ws.current.readyState === WebSocket.OPEN
         ) {
-          const canvas = document.createElement("canvas");
-          canvas.width = videoRef.current.videoWidth;
-          canvas.height = videoRef.current.videoHeight;
-          const ctx = canvas.getContext("2d");
-          if (ctx) {
-            ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-            const dataUrl = canvas.toDataURL("image/jpeg");
-            ws.current.send(
-              JSON.stringify({ type: "image", image_data: dataUrl })
-            );
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = videoRef.current.videoWidth;
+            canvas.height = videoRef.current.videoHeight;
+            const ctx = canvas.getContext("2d");
+            if (ctx) {
+              ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+              const dataUrl = canvas.toDataURL("image/jpeg");
+              ws.current.send(
+                JSON.stringify({ type: "image", image_data: dataUrl })
+              );
+              console.log("Sent emotion analysis request"); // Debug log
+            }
+          } catch (error) {
+            console.error("Error sending emotion data:", error);
           }
         }
-      }, 1000);
+      };
+
+      // Send immediately, then every 2 seconds
+      sendEmotionData(); // Send first frame immediately
+      intervalRef.current = setInterval(sendEmotionData, 2000); // Every 2 seconds
+
+      return () => {
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+        }
+      };
     }
 
     return () => {
@@ -494,7 +509,7 @@ export default function EmotionMonitoring() {
         clearInterval(intervalRef.current);
       }
     };
-  }, [isMonitoring]);
+  }, [isMonitoring, videoRef.current?.srcObject]);
 
   // Calculate vital signs from voice analysis data (no translations)
   const getVoiceStressLevel = () => {

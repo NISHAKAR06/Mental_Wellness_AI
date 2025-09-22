@@ -192,7 +192,7 @@ export default function Pricing() {
                 transition={{ duration: 0.6, delay: index * 0.1 }}
                 className="relative"
               >
-                <Card className={`relative h-full ${plan.popular ? 'ring-2 ring-primary shadow-xl scale-105' : 'shadow-md'}`}>
+                <Card className={`relative h-full flex flex-col ${plan.popular ? 'ring-2 ring-primary shadow-xl scale-105' : 'shadow-md'}`}>
                   {plan.popular && (
                     <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
                       <Badge className="bg-primary text-primary-foreground px-3 py-1">
@@ -202,7 +202,7 @@ export default function Pricing() {
                     </div>
                   )}
 
-                  <CardHeader className="text-center pb-2">
+                  <CardHeader className="text-center pb-4">
                     <CardTitle className="text-2xl font-bold">{plan.name}</CardTitle>
                     <div className="mt-4">
                       <span className="text-4xl font-bold text-primary">{plan.price}</span>
@@ -211,46 +211,47 @@ export default function Pricing() {
                     <p className="text-sm text-muted-foreground mt-2">{plan.description}</p>
                   </CardHeader>
 
-                  <CardContent className="flex flex-col h-full">
-
-                    {/* Features List */}
-                    <div className="space-y-3 mb-6 flex-1">
+                  <CardContent className="flex flex-col flex-1 pt-0">
+                    {/* Features List - Fixed height container */}
+                    <div className="space-y-3 mb-6 min-h-[200px] flex-1">
                       {plan.features.map((feature, idx) => (
-                        <div key={idx} className="flex items-center gap-3">
-                          <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
-                          <span className="text-sm">{feature}</span>
+                        <div key={idx} className="flex items-start gap-3">
+                          <Check className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <span className="text-sm leading-relaxed">{feature}</span>
                         </div>
                       ))}
                     </div>
 
-                    {/* Bottom Section - Stats & Button */}
-                    <div className="mt-auto pt-4 border-t border-muted">
-                      {/* Stats Grid */}
-                      <div className="grid grid-cols-2 gap-4 text-center mb-4 px-2">
-                        <div className="space-y-1">
-                          <div className="text-lg font-bold text-primary leading-tight">
-                            {plan.therapistHours > 0 ? `${plan.therapistHours}h` : 'AI'}
+                    {/* Bottom Section - Stats & Button - Pushed to bottom */}
+                    <div className="mt-auto">
+                      <div className="border-t border-muted pt-4">
+                        {/* Stats Grid */}
+                        <div className="grid grid-cols-2 gap-4 text-center mb-4">
+                          <div className="space-y-1">
+                            <div className="text-lg font-bold text-primary">
+                              {plan.therapistHours > 0 ? `${plan.therapistHours}h` : 'AI'}
+                            </div>
+                            <div className="text-xs text-muted-foreground">{t('pricing.therapy_time')}</div>
                           </div>
-                          <div className="text-xs text-muted-foreground leading-tight">{t('pricing.therapy_time')}</div>
-                        </div>
-                        <div className="space-y-1">
-                          <div className="text-lg font-bold text-primary leading-tight">
-                            {plan.sessionsPerMonth === -1 ? '∞' : plan.sessionsPerMonth}
+                          <div className="space-y-1">
+                            <div className="text-lg font-bold text-primary">
+                              {plan.sessionsPerMonth === -1 ? '∞' : plan.sessionsPerMonth}
+                            </div>
+                            <div className="text-xs text-muted-foreground">{t('pricing.sessions_month')}</div>
                           </div>
-                          <div className="text-xs text-muted-foreground leading-tight">{t('pricing.sessions_month')}</div>
                         </div>
-                      </div>
 
-                      {/* Button */}
-                      <Button
-                        className={`w-full h-12 text-sm font-semibold ${plan.popular ? 'btn-hero shadow-lg transform hover:scale-105 transition-all' : plan.id === 'enterprise' ? 'bg-secondary hover:bg-secondary/90' : ''}`}
-                        variant={plan.id === 'enterprise' ? 'secondary' : 'default'}
-                        size="lg"
-                      >
-                        {plan.id === 'free' ? t('pricing.get_started_free') :
-                         plan.id === 'enterprise' ? t('pricing.contact_sales') :
-                         t('pricing.start_free_trial')}
-                      </Button>
+                        {/* Button */}
+                        <Button
+                          className={`w-full h-12 text-sm font-semibold ${plan.popular ? 'btn-hero shadow-lg transform hover:scale-105 transition-all' : plan.id === 'enterprise' ? 'bg-secondary hover:bg-secondary/90' : ''}`}
+                          variant={plan.id === 'enterprise' ? 'secondary' : 'default'}
+                          size="lg"
+                        >
+                          {plan.id === 'free' ? t('pricing.get_started_free') :
+                           plan.id === 'enterprise' ? t('pricing.contact_sales') :
+                           t('pricing.start_free_trial')}
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
