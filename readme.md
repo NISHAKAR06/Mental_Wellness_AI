@@ -39,15 +39,15 @@ Mental Wellness AI is an end-to-end mental health technology platform that combi
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Frontend      │───►│   Django REST   │───►│   FastAPI AI    │
-│ (React/Vite)    │    │     API         │    │     Service     │
-│                 │    └─────────────────┘    └─────────────────┘
-└─────────────────┘             │                       │
-                                ├───────────────────────┘
+│   Frontend         │───►│   Django REST     │───►│      FastAPI AI   │
+│ (React/Vite)       │    │     API            │    │          Service   │
+│                    │    └─────────────────┘    └─────────────────┘
+└─────────────────┘          │                       │
+                                ├────────────────────┘
                                 │
                          ┌─────────────────┐
-                         │   PostgreSQL    │
-                         │   Database      │
+                         │   PostgreSQL       │
+                         │   Database         │
                          └─────────────────┘
 ```
 
