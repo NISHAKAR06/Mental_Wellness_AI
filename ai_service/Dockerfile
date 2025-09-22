@@ -17,10 +17,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     curl \
     libgomp1 \
-    libatlas-base-dev \
     libgfortran5 \
     liblapack3 \
-    libblas3 \
+    libopenblas0 \
+    libatlas3-base \
     && rm -rf /var/lib/apt/lists/*
 
 # Create app directory
