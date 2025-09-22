@@ -1,34 +1,33 @@
-# Core FastAPI Dependencies
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-python-multipart==0.0.6
-python-jose[cryptography]==3.3.0
-pydantic==2.5.0
-pydantic-settings==2.1.0
-requests==2.31.0
-PyJWT==2.8.0
+# Core FastAPI Dependencies - Compatible versions
+fastapi>=0.100.0,<0.105.0
+uvicorn[standard]>=0.23.0,<0.25.0
+python-multipart>=0.0.6
+python-jose[cryptography]>=3.3.0
+pydantic>=2.0.0,<2.6.0
+pydantic-settings>=2.0.0
+requests>=2.31.0
+PyJWT>=2.6.0
 
 # AI/ML Dependencies
-google-generativeai==0.3.2
-google-cloud-speech==2.21.1
-google-cloud-texttospeech==2.16.0
+google-generativeai>=0.3.0
+google-cloud-speech>=2.21.0
+google-cloud-texttospeech>=2.16.0
 
 # Image Processing
-Pillow==10.1.0
+Pillow>=10.0.0
 
 # ML/Emotion Detection - Compatible versions
-opencv-python==4.8.1.78
-numpy==1.24.3
+opencv-python>=4.8.0
+numpy>=1.24.0
 tensorflow==2.13.1
-fer==22.5.1
-mtcnn==0.1.1
+fer>=22.5.0
+mtcnn>=0.1.0
 
 # Environment and Configuration
-python-dotenv==1.0.0
+python-dotenv>=1.0.0
 
 # Development Dependencies
-pytest==7.4.3
-httpx==0.25.2
+pytest>=7.4.0
+httpx>=0.25.0
 
-# Compatibility fixes for Python typing - Compatible with TensorFlow 2.13.1
-typing-extensions>=4.5.0,<4.6.0
+# Let pip resolve typing-extensions automatically
