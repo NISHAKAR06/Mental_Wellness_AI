@@ -10,9 +10,11 @@ import {
 function Model({ url, scale = 1 }: { url: string; scale?: number }) {
   // Add error boundary and safer GLTF loading
   try {
+    console.log('Loading 3D model:', url);
     const { scene } = useGLTF(url);
 
     if (!scene) {
+      console.warn('No scene found in GLTF file:', url);
       return (
         <mesh visible={false}>
           <boxGeometry args={[0.1, 0.1, 0.1]} />
@@ -20,6 +22,7 @@ function Model({ url, scale = 1 }: { url: string; scale?: number }) {
       );
     }
 
+    console.log('✅ 3D model loaded successfully:', url);
     return (
       <primitive
         object={scene}
@@ -29,7 +32,7 @@ function Model({ url, scale = 1 }: { url: string; scale?: number }) {
       />
     );
   } catch (error) {
-    console.warn('GLTF loading error, using fallback:', error);
+    console.error('❌ GLTF loading error for', url, ':', error);
     return (
       <mesh visible={false}>
         <boxGeometry args={[0.1, 0.1, 0.1]} />
@@ -53,6 +56,21 @@ export function ThreeDModelViewer({
   showControls = true,
   voicePlaying = false,
 }: ThreeDModelViewerProps) {
+  // Debug: Check if model file exists
+  React.useEffect(() => {
+    fetch(modelUrl, { method: 'HEAD' })
+      .then(response => {
+        if (response.ok) {
+          console.log('✅ 3D model file exists:', modelUrl);
+        } else {
+          console.error('❌ 3D model file not found:', modelUrl, 'Status:', response.status);
+        }
+      })
+      .catch(error => {
+        console.error('❌ Error checking 3D model file:', modelUrl, error);
+      });
+  }, [modelUrl]);
+
   return (
     <div style={{ width: "100%", height: "100%", minHeight: "400px" }}>
       <Canvas
@@ -69,12 +87,13 @@ export function ThreeDModelViewer({
             </Html>
           }
         >
-          <ambientLight intensity={0.5} />
-          <pointLight position={[10, 10, 10]} />
-          <pointLight position={[-10, -10, -10]} intensity={0.5} />
+          <ambientLight intensity={0.6} />
+          <pointLight position={[10, 10, 10]} intensity={0.8} />
+          <pointLight position={[-10, -10, -10]} intensity={0.4} />
+          <directionalLight position={[0, 5, 5]} intensity={0.5} />
 
-          {/* Environment temporarily disabled */}
-          {/* <Environment preset="studio" /> */}
+          {/* Environment for better lighting and reflections */}
+          <Environment preset="studio" />
 
           <Model url={modelUrl} scale={scale} />
 
@@ -88,15 +107,18 @@ export function ThreeDModelViewer({
           )}
         </Suspense>
 
-        {/* Controls temporarily disabled */}
-        {/* {showControls && (
+        {/* Controls for 3D interaction */}
+        {showControls && (
           <OrbitControls
-            enablePan={false}
+            enablePan={true}
             enableZoom={true}
+            enableRotate={true}
             maxPolarAngle={Math.PI / 2}
-            minPolarAngle={Math.PI / 3}
+            minPolarAngle={Math.PI / 6}
+            maxDistance={10}
+            minDistance={1}
           />
-        )} */}
+        )}
       </Canvas>
 
       {/* Subtitles area */}

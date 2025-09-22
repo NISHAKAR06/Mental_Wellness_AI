@@ -415,6 +415,13 @@ const VideoCall: React.FC = () => {
         </div>
       </div>
 
+      {/* Debug Info - Remove this after testing */}
+      <div className="absolute top-4 right-4 bg-black bg-opacity-70 text-white p-2 rounded text-xs">
+        <div>Model: {psychologistConfig.modelUrl}</div>
+        <div>Scale: 2.0</div>
+        <div>Audio: {audioPlaying ? 'Playing' : 'Silent'}</div>
+      </div>
+
       {/* Transcripts overlay */}
       {transcripts.length > 0 && (
         <div className="absolute bottom-20 left-4 right-4 max-w-2xl mx-auto">

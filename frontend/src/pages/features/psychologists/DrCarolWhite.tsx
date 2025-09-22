@@ -353,41 +353,103 @@ const DrCarolWhite: React.FC = () => {
               </Alert>
             )}
 
-            {/* Conversation */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Your Conversation with Dr. Carol White</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {transcripts.length === 0 ? (
-                    <p className="text-gray-500 text-center py-8">
-                      Start speaking to begin your conversation with Dr. Carol White...
-                    </p>
-                  ) : (
-                    transcripts.map((transcript, index) => (
-                      <div
-                        key={index}
-                        className={`flex ${transcript.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                      >
+            {/* 3D Model Viewer & Conversation */}
+            {wsConnected && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">3D Session View</CardTitle>
+                    <CardDescription>
+                      Interact with Dr. Carol White's 3D avatar during your conversation
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="relative h-96 rounded-lg overflow-hidden">
+                      <ThreeDModelViewer
+                        modelUrl={psychologistConfig.modelUrl}
+                        scale={1.8}
+                        backgroundColor="#0f172a"
+                        showControls={true}
+                        voicePlaying={audioPlaying}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Your Conversation with Dr. Carol White</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3 max-h-96 overflow-y-auto">
+                      {transcripts.length === 0 ? (
+                        <p className="text-gray-500 text-center py-8">
+                          Start speaking to begin your conversation with Dr. Carol White...
+                        </p>
+                      ) : (
+                        transcripts.map((transcript, index) => (
+                          <div
+                            key={index}
+                            className={`flex ${transcript.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                          >
+                            <div
+                              className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                                transcript.role === 'user'
+                                  ? 'bg-pink-600 text-white'
+                                  : 'bg-rose-100 text-rose-800 border border-rose-300'
+                              }`}
+                            >
+                              <p className="text-sm font-medium mb-1">
+                                {transcript.role === 'assistant' ? 'Dr. Carol White:' : 'You:'}
+                              </p>
+                              <p className="text-sm">{transcript.text}</p>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Conversation (when 3D model not shown) */}
+            {!wsConnected && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Your Conversation with Dr. Carol White</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {transcripts.length === 0 ? (
+                      <p className="text-gray-500 text-center py-8">
+                        Start speaking to begin your conversation with Dr. Carol White...
+                      </p>
+                    ) : (
+                      transcripts.map((transcript, index) => (
                         <div
-                          className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                            transcript.role === 'user'
-                              ? 'bg-pink-600 text-white'
-                              : 'bg-rose-100 text-rose-800 border border-rose-300'
-                          }`}
+                          key={index}
+                          className={`flex ${transcript.role === 'user' ? 'justify-end' : 'justify-start'}`}
                         >
-                          <p className="text-sm font-medium mb-1">
-                            {transcript.role === 'assistant' ? 'Dr. Carol White:' : 'You:'}
-                          </p>
-                          <p className="text-sm">{transcript.text}</p>
+                          <div
+                            className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                              transcript.role === 'user'
+                                ? 'bg-pink-600 text-white'
+                                : 'bg-rose-100 text-rose-800 border border-rose-300'
+                            }`}
+                          >
+                            <p className="text-sm font-medium mb-1">
+                              {transcript.role === 'assistant' ? 'Dr. Carol White:' : 'You:'}
+                            </p>
+                            <p className="text-sm">{transcript.text}</p>
+                          </div>
                         </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                      ))
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
       </div>
