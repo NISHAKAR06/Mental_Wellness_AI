@@ -323,7 +323,7 @@ export default function EmotionMonitoring() {
           if (ctx) {
             ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
             const dataUrl = canvas.toDataURL("image/jpeg");
-            ws.current.send(JSON.stringify({ image: dataUrl }));
+            ws.current.send(JSON.stringify({ type: 'image', image_data: dataUrl }));
           }
         }
       }, 1000);
