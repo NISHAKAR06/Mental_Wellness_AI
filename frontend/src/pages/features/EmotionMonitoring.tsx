@@ -336,6 +336,8 @@ export default function EmotionMonitoring() {
     };
   }, [isMonitoring]);
 
+
+
   // Calculate vital signs from voice analysis data (no translations)
   const getVoiceStressLevel = () => {
     const stress = voiceAnalysis.stress_level;

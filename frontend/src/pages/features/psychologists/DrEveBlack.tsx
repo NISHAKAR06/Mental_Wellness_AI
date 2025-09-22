@@ -174,7 +174,8 @@ const DrEveBlack: React.FC = () => {
 
   const endSession = async () => {
     try {
-      await fetch('http://localhost:8000/api/sessions/end/', {
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      await fetch(`${apiBaseUrl}/api/sessions/end/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -8,18 +8,34 @@ import {
 } from "@react-three/drei";
 
 function Model({ url, scale = 1 }: { url: string; scale?: number }) {
-  const { scene } = useGLTF(url);
+  // Add error boundary and safer GLTF loading
+  try {
+    const { scene } = useGLTF(url);
 
-  if (!scene) return null;
+    if (!scene) {
+      return (
+        <mesh visible={false}>
+          <boxGeometry args={[0.1, 0.1, 0.1]} />
+        </mesh>
+      );
+    }
 
-  return (
-    <primitive
-      object={scene}
-      scale={[scale, scale, scale]}
-      position={[0, -1, 0]}
-      rotation={[0, 0, 0]}
-    />
-  );
+    return (
+      <primitive
+        object={scene}
+        scale={[scale, scale, scale]}
+        position={[0, -1, 0]}
+        rotation={[0, 0, 0]}
+      />
+    );
+  } catch (error) {
+    console.warn('GLTF loading error, using fallback:', error);
+    return (
+      <mesh visible={false}>
+        <boxGeometry args={[0.1, 0.1, 0.1]} />
+      </mesh>
+    );
+  }
 }
 
 interface ThreeDModelViewerProps {
@@ -57,7 +73,8 @@ export function ThreeDModelViewer({
           <pointLight position={[10, 10, 10]} />
           <pointLight position={[-10, -10, -10]} intensity={0.5} />
 
-          <Environment preset="studio" />
+          {/* Environment temporarily disabled */}
+          {/* <Environment preset="studio" /> */}
 
           <Model url={modelUrl} scale={scale} />
 
@@ -71,14 +88,15 @@ export function ThreeDModelViewer({
           )}
         </Suspense>
 
-        {showControls && (
+        {/* Controls temporarily disabled */}
+        {/* {showControls && (
           <OrbitControls
             enablePan={false}
             enableZoom={true}
             maxPolarAngle={Math.PI / 2}
             minPolarAngle={Math.PI / 3}
           />
-        )}
+        )} */}
       </Canvas>
 
       {/* Subtitles area */}

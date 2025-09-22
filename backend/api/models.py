@@ -89,13 +89,4 @@ class EmotionSession(models.Model):
     def __str__(self):
         return f"Emotions for {self.session.session_id}"
 
-# Keep the existing EmotionData model for general emotion monitoring
-class EmotionData(models.Model):
-    happy = models.FloatField()
-    neutral = models.FloatField()
-    anxious = models.FloatField()
-    stressed = models.FloatField()
-    timestamp = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Emotions at {self.timestamp}"
+# Emotion monitoring moved to FastAPI ai_service

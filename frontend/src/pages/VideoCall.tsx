@@ -185,7 +185,8 @@ const VideoCall: React.FC = () => {
     if (!session?.session_id) return;
 
     try {
-      await fetch('http://localhost:8000/api/emotions/', {
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      await fetch(`${apiBaseUrl}/api/emotions/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -220,7 +221,8 @@ const VideoCall: React.FC = () => {
 
   const startSession = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/sessions/start/', {
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiBaseUrl}/api/sessions/start/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -366,7 +368,8 @@ const VideoCall: React.FC = () => {
 
   const handleEndCall = async () => {
     try {
-      await fetch('http://localhost:8000/api/sessions/end/', {
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      await fetch(`${apiBaseUrl}/api/sessions/end/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

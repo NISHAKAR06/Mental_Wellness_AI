@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 # Direct imports for running from ai_service directory
 try:
     from ai_service.core.ws_voice import WebSocketVoiceHandler
+    from ai_service.core.ws_emotions import WebSocketEmotionHandler
     from ai_service.core.agents import get_agent
     from ai_service.core.risk import classify_risk
     from ai_service.core.llm import generate_reply
@@ -20,6 +21,7 @@ except ImportError:
     # Fallback to local imports if package structure fails
     try:
         from .core.ws_voice import WebSocketVoiceHandler
+        from .core.ws_emotions import WebSocketEmotionHandler
         from .core.agents import get_agent
         from .core.risk import classify_risk
         from .core.llm import generate_reply
@@ -28,6 +30,7 @@ except ImportError:
     except ImportError:
         # Last fallback - direct imports
         import core.ws_voice as ws_voice_mod
+        import core.ws_emotions as ws_emotions_mod
         import core.agents as agents_mod
         import core.risk as risk_mod
         import core.llm as llm_mod
@@ -35,6 +38,7 @@ except ImportError:
         import core.emotion_integration as emotion_mod
 
         WebSocketVoiceHandler = ws_voice_mod.WebSocketVoiceHandler
+        WebSocketEmotionHandler = ws_emotions_mod.WebSocketEmotionHandler
         get_agent = agents_mod.get_agent
         classify_risk = risk_mod.classify_risk
         generate_reply = llm_mod.generate_reply
@@ -73,10 +77,16 @@ async def add_cors_headers(request: Request, call_next):
 
 # WebSocket routes
 ws_handler = WebSocketVoiceHandler()
+emotion_handler = WebSocketEmotionHandler()
 
 @app.websocket("/ws/voice/{session_id}")
 async def websocket_voice_endpoint(websocket: WebSocket, session_id: str):
     await ws_handler.handle_connection(websocket, session_id)
+
+@app.websocket("/ws/emotions/")
+async def websocket_emotion_endpoint(websocket: WebSocket):
+    # Use a fixed session ID for emotion monitoring (could be enhanced for user sessions)
+    await emotion_handler.handle_connection(websocket, "emotion_session")
 
 @app.get("/health")
 async def health_check():
