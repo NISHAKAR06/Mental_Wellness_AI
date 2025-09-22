@@ -1,6 +1,10 @@
 {
   "rewrites": [
     { "source": "/api/:path*", "destination": "https://mainbackend-production-29cf.up.railway.app/api/:path*" },
-    { "source": "/ws/:path*", "destination": "https://aiservicebackend-production.up.railway.app/ws/:path*" }
+    { "source": "/ws/:path*", "destination": "https://aiservicebackend-production.up.railway.app/ws/:path*" },
+    {
+      "source": "/((?!api|_next/static|_next/image|favicon.ico|robots.txt|manifest.json|.*\\.).*)",
+      "destination": "/index.html"
+    }
   ]
 }
