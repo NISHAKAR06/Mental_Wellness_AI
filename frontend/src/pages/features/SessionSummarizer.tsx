@@ -51,7 +51,8 @@ export default function SessionSummarizer() {
     setSummary(null);
     setError(null);
     try {
-      const response = await fetch('/api/summarize/', {
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiBaseUrl}/api/summarize/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
