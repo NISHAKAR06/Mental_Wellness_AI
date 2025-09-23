@@ -1,4 +1,4 @@
-# Core FastAPI Dependencies - TensorFlow 2.13.1 compatible versions
+# Core FastAPI Dependencies
 fastapi>=0.100.0,<0.104.0
 uvicorn[standard]>=0.23.0,<0.25.0
 python-multipart>=0.0.6
@@ -16,10 +16,10 @@ google-cloud-texttospeech>=2.16.0
 # Image Processing
 Pillow>=10.0.0
 
-# ML/Emotion Detection - Compatible versions
+# ML/Emotion Detection - Updated TensorFlow for compatibility
 opencv-python>=4.8.0
 numpy>=1.24.0
-tensorflow==2.13.1
+tensorflow==2.16.1
 fer>=22.5.0
 mtcnn>=0.1.0
 
@@ -29,5 +29,3 @@ python-dotenv>=1.0.0
 # Development Dependencies
 pytest>=7.4.0
 httpx>=0.25.0
-
-# Let pip resolve typing-extensions automatically
