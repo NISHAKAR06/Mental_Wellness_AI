@@ -1,58 +1,68 @@
-# Use Python 3.11 slim image with optimizations
-FROM python:3.11-slim
+# Multi-stage build for smaller image size
+FROM python:3.11-slim as builder
 
-# Set environment variables for better performance
-ENV PYTHONUNBUFFERED=1
-ENV DEBIAN_FRONTEND=noninteractive
-ENV PIP_NO_CACHE_DIR=1
-ENV PIP_DISABLE_PIP_VERSION_CHECK=1
-ENV PYTHONPATH=/app
-ENV MPLBACKEND=Agg
-
-# Install system dependencies for ML and audio processing
+# Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    g++ \
-    libsndfile1 \
-    ffmpeg \
-    curl \
-    libgomp1 \
-    libgfortran5 \
-    liblapack3 \
-    libopenblas0 \
-    libatlas3-base \
+    build-essential \
+    pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
-# Create app directory
+# Create virtual environment
+ENV VIRTUAL_ENV=/opt/venv
+RUN python -m venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+# Install TensorFlow CPU-only first (smaller)
+RUN pip install --no-cache-dir tensorflow-cpu==2.16.1 --timeout=300
+
+# Copy and install requirements
 WORKDIR /app
-
-# Copy requirements first for better layer caching
 COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt --timeout=300
 
-# Install Python dependencies with optimizations
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel --timeout=300 && \
-    pip install --no-cache-dir tensorflow==2.16.1 --timeout=300 && \
-    pip install --no-cache-dir -r requirements.txt --timeout=300
+# Runtime image - much smaller
+FROM python:3.11-slim
 
-# Copy project files
-COPY . .
+# Install only runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgomp1 \
+    libgfortran5 \
+    libopenblas0 \
+    liblapack3 \
+    libatlas3-base \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user for security
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app \
+    MPLBACKEND=Agg \
+    PIP_NO_CACHE_DIR=1
+
+# Create non-root user
 RUN groupadd --gid 1001 appgroup && \
     useradd --uid 1001 --gid 1001 --create-home --shell /bin/bash appuser
 
-# Change ownership of app directory
-RUN chown -R appuser:appgroup /app
+# Create app directory and set ownership
+WORKDIR /app
+RUN chown appuser:appgroup /app
 
 # Switch to non-root user
 USER appuser
 
+# Copy application code
+COPY --chown=appuser:appgroup . .
+
 # Expose port
 EXPOSE 8001
 
-# Health check with extended timeout for ML model loading
-HEALTHCHECK --interval=30s --timeout=30s --start-period=60s --retries=3 \
+# Health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:8001/health || exit 1
 
-# Start FastAPI server with uvicorn - optimized for production
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "1", "--loop", "asyncio", "--access-log"]
+# Start application
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "1", "--loop", "asyncio", "--http", "httptools", "--ws", "websockets"]

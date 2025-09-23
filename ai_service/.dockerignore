@@ -18,9 +18,7 @@ nosetests.xml
 coverage.xml
 *.cover
 *.log
-.git
 .mypy_cache
-.pytest_cache
 .hypothesis
 
 # Virtual environments
@@ -48,10 +46,11 @@ venv.bak/
 ehthumbs.db
 Thumbs.db
 
-# Documentation
+# Documentation and development
 README.md
 DEPLOYMENT.md
 *.md
+validate_endpoints.py
 
 # Test files
 tests/
@@ -67,7 +66,7 @@ docker-compose*
 # Node modules (if any)
 node_modules/
 
-# Large files
+# Large binary files
 *.mp4
 *.avi
 *.mov
@@ -77,7 +76,7 @@ node_modules/
 *.tar.gz
 *.rar
 
-# Model files (if stored locally)
+# ML models (stored locally)
 *.h5
 *.pb
 *.tflite
@@ -85,11 +84,12 @@ node_modules/
 *.pkl
 *.joblib
 
-# Logs
+# Logs and temporary files
 *.log
 logs/
-
-# Temporary files
+tmp/
+temp/
+.tmp/
 tmp/
 temp/
 .tmp/

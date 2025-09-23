@@ -19,7 +19,7 @@ Pillow>=10.0.0
 # ML/Emotion Detection - Updated TensorFlow for compatibility
 opencv-python>=4.8.0
 numpy>=1.24.0
-tensorflow==2.16.1
+tensorflow-cpu==2.16.1
 fer>=22.5.0
 mtcnn>=0.1.0
 
