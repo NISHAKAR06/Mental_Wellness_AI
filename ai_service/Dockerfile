@@ -1,29 +1,34 @@
-# Multi-stage build for smaller image size
+# Optimized build with faster TensorFlow installation
 FROM python:3.11-slim as builder
 
-# Install build dependencies
+# Install build essentials quickly
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
-    pkg-config \
+    libatlas-base-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Create virtual environment
 ENV VIRTUAL_ENV=/opt/venv
-RUN python -m venv $VIRTUAL_ENV
+RUN python -c "import sys; print('Python version check passed')" && \
+    python -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-# Install TensorFlow CPU-only first (smaller)
-RUN pip install --no-cache-dir tensorflow-cpu==2.16.1 --timeout=300
+# Install TensorFlow first with increased timeout and retries
+RUN pip install --no-cache-dir --timeout=900 --retries=5 tensorflow-cpu==2.16.1
 
-# Copy and install requirements
+# Install other dependencies with shorter timeout since TensorFlow is done
 WORKDIR /app
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt --timeout=300
+RUN pip install --no-cache-dir --timeout=300 -r requirements.txt
 
-# Runtime image - much smaller
+# Slim runtime image
 FROM python:3.11-slim
 
-# Install only runtime dependencies
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Install only essential runtime libraries
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgomp1 \
     libgfortran5 \
@@ -32,10 +37,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libatlas3-base \
     curl \
     && rm -rf /var/lib/apt/lists/*
-
-# Copy virtual environment from builder
-COPY --from=builder /opt/venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \

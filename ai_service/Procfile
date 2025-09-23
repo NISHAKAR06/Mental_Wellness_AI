@@ -1,1 +1,1 @@
-web: uvicorn main:app --host 0.0.0.0 --port $PORT --workers 1 --loop asyncio --http httptools --ws websockets --log-level info
+web: uvicorn main:app --host 0.0.0.0 --port $PORT --workers 1 --loop asyncio --http httptools --ws websockets --access-log --log-level info
