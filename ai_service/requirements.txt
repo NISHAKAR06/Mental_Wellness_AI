@@ -16,10 +16,9 @@ google-cloud-texttospeech>=2.16.0
 # Image Processing
 Pillow>=10.0.0
 
-# ML/Emotion Detection - Updated TensorFlow for compatibility
+# ML/Emotion Detection - TensorFlow pre-installed separately
 opencv-python>=4.8.0
 numpy>=1.24.0
-tensorflow-cpu==2.16.1
 fer>=22.5.0
 mtcnn>=0.1.0
 

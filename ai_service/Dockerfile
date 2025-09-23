@@ -1,10 +1,10 @@
 # Optimized build with faster TensorFlow installation
 FROM python:3.11-slim as builder
 
-# Install build essentials quickly
+# Install build essentials quickly (TensorFlow CPU is pre-compiled)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
-    libatlas-base-dev \
+    pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 # Create virtual environment
