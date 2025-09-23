@@ -30,8 +30,9 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Install Python dependencies with optimizations
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel --timeout=300 && \
+    pip install --no-cache-dir tensorflow==2.16.1 --timeout=300 && \
+    pip install --no-cache-dir -r requirements.txt --timeout=300
 
 # Copy project files
 COPY . .

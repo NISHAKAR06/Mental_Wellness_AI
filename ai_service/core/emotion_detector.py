@@ -33,9 +33,14 @@ class EmotionDetector:
             logging.info("🎭 Using FER with MTCNN for enhanced face detection")
 
         except Exception as e:
-            logging.error(f"❌ Failed to initialize emotion detection models: {e}")
-            # Fallback to basic emotion detection
-            self.detector = FER()
+            logging.error(f"❌ Failed to initialize emotion detection models with MTCNN: {e}")
+            try:
+                # Fallback to basic emotion detection without MTCNN
+                self.detector = FER()
+                logging.info("✅ Emotion detection model initialized without MTCNN")
+            except Exception as e2:
+                logging.error(f"❌ Failed to initialize any emotion detection model: {e2}")
+                self.detector = None
 
     def decode_image(self, image_data: str) -> Optional[np.ndarray]:
         """Decode base64 image data to numpy array"""
@@ -69,6 +74,10 @@ class EmotionDetector:
         Returns emotion percentages and dominant emotion
         """
         try:
+            if self.detector is None:
+                logging.warning("⚠️ Emotion detection not available due to initialization failure")
+                return self._get_default_emotions()
+
             # Decode image
             image = self.decode_image(image_data)
             if image is None:

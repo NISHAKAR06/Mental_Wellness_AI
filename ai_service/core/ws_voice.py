@@ -66,6 +66,8 @@ class WebSocketVoiceHandler:
 
         # Secret key for JWT validation (should match Django)
         self.secret_key = os.getenv("SECRET_KEY", "your-secret-key-here")
+        if self.secret_key == "your-secret-key-here":
+            print("⚠️ WARNING: Using default SECRET_KEY. Set actual secret key in production!")
 
         # Language configurations for STT and TTS (access enums safely)
         try:
@@ -470,11 +472,18 @@ class WebSocketVoiceHandler:
                 alternative_language_codes=[] if language == 'en-IN' else ['en-IN'],
             )
 
-            # Perform speech recognition
-            response = await asyncio.get_event_loop().run_in_executor(
-                None,
-                lambda: client.recognize(config=config, audio=audio)
-            )
+            # Perform speech recognition with timeout
+            try:
+                response = await asyncio.wait_for(
+                    asyncio.get_event_loop().run_in_executor(
+                        None,
+                        lambda: client.recognize(config=config, audio=audio)
+                    ),
+                    timeout=30.0  # 30 second timeout for STT
+                )
+            except asyncio.TimeoutError:
+                print("⚠️ STT request timed out")
+                return f"Speech recognition timeout ({language})"
 
             # Extract transcript from first result
             if response.results:

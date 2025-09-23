@@ -14,7 +14,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Configure Gemini API
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+api_key = os.getenv("GEMINI_API_KEY")
+if api_key:
+    genai.configure(api_key=api_key)
+else:
+    print("⚠️ WARNING: GEMINI_API_KEY not found in environment variables. LLM functionality will fail.")
 
 class LLMHandler:
     def __init__(self):
