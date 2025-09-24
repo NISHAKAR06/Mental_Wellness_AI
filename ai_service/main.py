@@ -8,59 +8,43 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 from dotenv import load_dotenv
 
-# Robust imports for deployment
-def import_with_fallback(module_name: str, class_name: str = None):
-    """Import module with multiple fallback strategies"""
-    import sys
-    import os
+# Ultra-simple imports for Docker deployment
+import sys
+import os
 
-    # Try different import strategies
-    strategies = [
-        # Strategy 1: Direct absolute import
-        lambda: __import__(f'ai_service.core.{module_name}', fromlist=[class_name or module_name]),
-        # Strategy 2: Relative import
-        lambda: __import__(f'.core.{module_name}', fromlist=[class_name or module_name], level=1),
-        # Strategy 3: Direct path import
-        lambda: __import__(module_name, fromlist=[class_name or module_name]),
-    ]
+# Add core directory to Python path
+current_dir = os.path.dirname(__file__)
+core_dir = os.path.join(current_dir, 'core')
 
-    for strategy in strategies:
-        try:
-            return strategy()
-        except ImportError:
-            continue
+if core_dir not in sys.path:
+    sys.path.insert(0, core_dir)
 
-    # Final fallback - add current directory to path
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    if current_dir not in sys.path:
-        sys.path.insert(0, current_dir)
-
-    try:
-        return __import__(f'core.{module_name}', fromlist=[class_name or module_name])
-    except ImportError as e:
-        raise ImportError(f"Failed to import {module_name}: {e}")
-
-# Import all required modules
+# Direct imports without complex fallback logic
 try:
-    ws_voice_mod = import_with_fallback('ws_voice', 'WebSocketVoiceHandler')
-    ws_emotions_mod = import_with_fallback('ws_emotions', 'WebSocketEmotionHandler')
-    agents_mod = import_with_fallback('agents', 'get_agent')
-    risk_mod = import_with_fallback('risk', 'classify_risk')
-    llm_mod = import_with_fallback('llm', 'generate_reply')
-    memory_mod = import_with_fallback('memory', 'MemoryManager')
-    emotion_mod = import_with_fallback('emotion_integration', 'EmotionIntegrator')
+    # Import modules directly
+    import ws_voice
+    import ws_emotions
+    import agents
+    import risk
+    import llm
+    import memory
+    import emotion_integration
 
-    WebSocketVoiceHandler = ws_voice_mod.WebSocketVoiceHandler
-    WebSocketEmotionHandler = ws_emotions_mod.WebSocketEmotionHandler
-    get_agent = agents_mod.get_agent
-    classify_risk = risk_mod.classify_risk
-    generate_reply = llm_mod.generate_reply
-    MemoryManager = memory_mod.MemoryManager
-    EmotionIntegrator = emotion_mod.EmotionIntegrator
+    WebSocketVoiceHandler = ws_voice.WebSocketVoiceHandler
+    WebSocketEmotionHandler = ws_emotions.WebSocketEmotionHandler
+    get_agent = agents.get_agent
+    classify_risk = risk.classify_risk
+    generate_reply = llm.generate_reply
+    MemoryManager = memory.MemoryManager
+    EmotionIntegrator = emotion_integration.EmotionIntegrator
 
 except ImportError as e:
     print(f"❌ Critical import error: {e}")
-    print("This may indicate missing dependencies or incorrect file structure")
+    print("Available files in core directory:")
+    try:
+        print(os.listdir(core_dir))
+    except:
+        pass
     raise
 
 load_dotenv()
