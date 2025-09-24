@@ -48,4 +48,4 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=30s --retries=3 \
 EXPOSE $PORT
 
 # Start with environment variable port support
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port $PORT --workers 1 --loop asyncio --http h11 --ws websockets --log-level info"]
+CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "1", "--loop", "asyncio"]
