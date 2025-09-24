@@ -20,24 +20,24 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user
-RUN groupadd --gid 1001 appgroup && \
-    useradd --uid 1001 --gid 1001 --create-home --shell /bin/bash appuser
-
-# Create app directory and set ownership
+# Create app directory first
 WORKDIR /app
-RUN chown appuser:appgroup /app
+
+# Copy requirements first for better caching
+COPY requirements.txt .
+
+# Install Python dependencies with optimized settings (as root)
+RUN pip install --no-cache-dir --timeout=300 -r requirements.txt
+
+# Create non-root user and set ownerships
+RUN groupadd --gid 1001 appgroup && \
+    useradd --uid 1001 --gid 1001 --create-home --shell /bin/bash appuser && \
+    chown -R appuser:appgroup /app
 
 # Switch to non-root user
 USER appuser
 
-# Copy requirements first for better caching
-COPY --chown=appuser:appgroup requirements.txt .
-
-# Install Python dependencies with optimized settings
-RUN pip install --no-cache-dir --timeout=300 -r requirements.txt
-
-# Copy application code
+# Copy application code and set ownership
 COPY --chown=appuser:appgroup . .
 
 # Health check
