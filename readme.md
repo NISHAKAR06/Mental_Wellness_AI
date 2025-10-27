@@ -483,9 +483,12 @@ node --version  # Should be 18+
 
 ### 🎯 Recommended Platforms
 - **Frontend**: [Vercel](https://vercel.com) (Free tier: 100GB/month, auto-deploy from GitHub)
-- **Backend & AI Service**: [Railway](https://railway.app) (Free tier: $5 credit, PostgreSQL included)
-- **Database**: Railway PostgreSQL (No additional cost)
+- **Backend & AI Service**: [Render](https://render.com) (Free tier: 750 hours/month, PostgreSQL included)
+- **Database**: Render PostgreSQL (No additional cost)
 - **Monitoring**: Built-in with both platforms
+
+### Alternative Platform
+- **Backend & AI Service**: [Railway](https://railway.app) (Free tier: $5 credit, PostgreSQL included)
 
 ### Estimated Monthly Costs:
 - **Development/Testing**: $0-5/month within free limits
@@ -653,12 +656,6 @@ This platform is designed to complement, not replace, professional mental health
 - Cultural adaptation modules
 - Cross-border healthcare collaboration
 
-## 📞 Support & Documentation
-
-- **Documentation**: [docs.mentalwellnessai.com](https://docs.mentalwellnessai.com)
-- **API Reference**: [api.mentalwellnessai.com](https://api.mentalwellnessai.com)
-- **Community**: [Discord Server](https://discord.gg/mentalwellnessai)
-- **Support**: support@mentalwellnessai.com
 
 ## 🙏 Acknowledgments
 
@@ -666,4 +663,11 @@ This project was developed with guidance from mental health professionals and AI
 
 ---
 
-**Made with ❤️ for mental wellness worldwide**
+## 📞 Contact
+
+- Archana Sengunthar — Email: [archanagurusamy648@gmail.com](mailto:archanagurusamy648@gmail.com)
+- • GitHub: [ARCHANA-SENGUNTHAR](https://github.com/ARCHANA-SENGUNTHAR)
+- Deepika S — Email: [studiesfor456@gmail.com](mailto:studiesfor456@gmail.com)
+- • GitHub: [Deepikasel](https://github.com/Deepikasel)
+
+---
