@@ -667,7 +667,8 @@ This project was developed with guidance from mental health professionals and AI
 
 - Archana Sengunthar — Email: [archanagurusamy648@gmail.com](mailto:archanagurusamy648@gmail.com)
 - • GitHub: [ARCHANA-SENGUNTHAR](https://github.com/ARCHANA-SENGUNTHAR)
-- Deepika S — Email: [studiesfor456@gmail.com](mailto:studiesfor456@gmail.com)
-- • GitHub: [Deepikasel](https://github.com/Deepikasel)
-
+- Neha S — Email: [nehasasikumar06@gmail.com](mailto:nehasasikumar06@gmail.com)
+- • GitHub: [Deepikasel](https://github.com/Nehasasikumar)
+- Nishakar T — Email: [nishakarnishakar06@gmail.com](mailto:nishakarnishakar06@gmail.com)
+- • GitHub: [Nishakar](https://github.com/NISHAKAR06)
 ---
