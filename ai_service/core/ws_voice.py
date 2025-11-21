@@ -17,11 +17,34 @@ from dotenv import load_dotenv
 import io
 import hashlib
 
-from .agents import get_agent
-from .llm import generate_reply
-from .risk import classify_risk, generate_safety_reply
-from .memory import MemoryManager
-from .emotion_integration import EmotionIntegrator
+# Import directly since this may be run as a script, not a package
+import sys
+import os
+
+# Add parent directory to Python path for absolute imports
+current_dir = os.path.dirname(__file__)
+parent_dir = os.path.dirname(current_dir)
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+
+try:
+    from core.agents import get_agent
+    from core.llm import generate_reply
+    from core.risk import classify_risk, generate_safety_reply
+    from core.memory import MemoryManager
+    from core.emotion_integration import EmotionIntegrator
+except ImportError:
+    print("❌ Failed to import core modules with absolute paths, trying relative imports...")
+    try:
+        from .agents import get_agent
+        from .llm import generate_reply
+        from .risk import classify_risk, generate_safety_reply
+        from .memory import MemoryManager
+        from .emotion_integration import EmotionIntegrator
+    except ImportError as e:
+        print(f"❌ Import error: {e}")
+        print("Please run this from the ai_service directory with Python package context.")
+        raise
 
 # Google Cloud imports (loaded conditionally)
 try:
@@ -127,6 +150,9 @@ class WebSocketVoiceHandler:
             print(f"🔗 WebSocket connection accepted for session: {session_id}")
 
 
+            # Check if demo mode is enabled (allow unauthenticated connections)
+            DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
+
             # Wait for initialization message from client
             try:
                 init_message = await asyncio.wait_for(
@@ -136,12 +162,61 @@ class WebSocketVoiceHandler:
 
                 # Validate the init message
                 token = init_message.get('token')
-                if not token:
+                if not token and not DEMO_MODE:
                     await websocket.send_json({
                         "type": "error",
                         "message": "Authentication token required"
                     })
                     return
+
+                if DEMO_MODE and not token:
+                    print(f"🔓 Demo mode: Allowing unauthenticated connection for session {session_id}")
+                    # Create default session data for demo
+                    agent_id = init_message.get('agent_id', 'eve_black_career')
+                    lang = init_message.get('lang', 'en-IN')
+                    payload = {
+                        'user_id': f'demo_user_{session_id}',
+                        'agent_id': agent_id,
+                        'lang': lang,
+                        'session_id': session_id,
+                        'consent': True
+                    }
+
+                    # Store demo session data
+                    self.active_sessions[session_id] = payload
+
+                    # Initialize demo session components
+                    try:
+                        agent_config = get_agent(payload['agent_id'])
+                        print(f"🎯 Loaded demo agent: {agent_config.name}")
+
+                        # Initialize memory manager for this demo session
+                        self.memory_managers[session_id] = MemoryManager(
+                            session_id=session_id,
+                            consent_store=payload['consent']
+                        )
+
+                        # Initialize emotion integrator if available
+                        if os.getenv("ENABLE_EMOTION_INTEGRATION", "true").lower() == "true" and EmotionIntegrator:
+                            self.emotion_integrators[session_id] = EmotionIntegrator(payload['user_id'])
+
+                        # Send connection confirmation
+                        await websocket.send_json({
+                            "type": "connection_established",
+                            "agent_name": agent_config.name,
+                            "voice_prefs": agent_config.voice_prefs,
+                            "demo_mode": True
+                        })
+
+                        print(f"🎉 Demo session initialization complete for {agent_config.name}")
+
+                    except Exception as e:
+                        print(f"❌ Demo session setup failed: {e}")
+                        await websocket.send_json({
+                            "type": "error",
+                            "message": f"Demo session setup failed: {str(e)}"
+                        })
+                        return
 
                 # Decode and validate JWT token
                 try:
@@ -198,10 +273,19 @@ class WebSocketVoiceHandler:
                 })
                 return
 
-            # Main message loop
+            # Main message loop - handle both text and binary messages
             while True:
-                message = await websocket.receive_json()
-                await self._handle_message(websocket, session_id, message)
+                try:
+                    # Try to receive as JSON first
+                    try:
+                        message = await asyncio.wait_for(websocket.receive_json(), timeout=0.1)
+                        await self._handle_json_message(websocket, session_id, message)
+                    except asyncio.TimeoutError:
+                        # No JSON message, try binary audio
+                        audio_chunk = await websocket.receive_bytes()
+                        await self._handle_binary_audio(websocket, session_id, audio_chunk)
+                except WebSocketDisconnect:
+                    break
 
         except WebSocketDisconnect:
             print(f"WebSocket disconnected for session: {session_id}")
@@ -210,43 +294,31 @@ class WebSocketVoiceHandler:
             print(f"Error in WebSocket handler: {e}")
             await self._cleanup_session(session_id)
 
-    # Removed unused _validate_session method - JWT validation now handled inline during connection setup
-
-    async def _handle_message(self, websocket: WebSocket, session_id: str, message: Dict[str, Any]):
-        """Handle incoming WebSocket messages"""
+    async def _handle_json_message(self, websocket: WebSocket, session_id: str, message: Dict[str, Any]):
+        """Handle incoming JSON WebSocket messages"""
         message_type = message.get('type')
 
         if message_type == 'user_utterance_end':
             await self._process_utterance(websocket, session_id)
         elif message_type == 'barge_in':
             await self._handle_barge_in(websocket, session_id)
-        elif message_type == 'audio_chunk':
-            await self._handle_audio_chunk(websocket, session_id, message)
         elif message_type == 'end_session':
             await self._end_session_gracefully(websocket, session_id)
         else:
             print(f"Unknown message type: {message_type}")
 
-    async def _handle_audio_chunk(self, websocket: WebSocket, session_id: str, message: Dict[str, Any]):
-        """Handle incoming audio chunk"""
+    async def _handle_binary_audio(self, websocket: WebSocket, session_id: str, audio_chunk: bytes):
+        """Handle incoming binary audio chunk"""
         try:
-            # Decode base64 audio data
-            audio_data = message.get('audio_data')
-            if not audio_data:
-                return
-
-            # Decode base64 audio chunk
-            audio_bytes = base64.b64decode(audio_data)
-
-            # Store chunk in buffer
+            # Store binary audio chunk directly
             if session_id not in self.audio_buffers:
                 self.audio_buffers[session_id] = []
-            self.audio_buffers[session_id].append(audio_bytes)
+            self.audio_buffers[session_id].append(audio_chunk)
 
-            print(f"Audio chunk received for session {session_id} ({len(audio_bytes)} bytes)")
+            print(f"Binary audio chunk received for session {session_id} ({len(audio_chunk)} bytes)")
 
         except Exception as e:
-            print(f"Error handling audio chunk: {e}")
+            print(f"Error handling binary audio chunk: {e}")
 
     async def _process_utterance(self, websocket: WebSocket, session_id: str):
         """Process user utterance after receiving end signal"""

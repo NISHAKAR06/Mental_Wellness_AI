@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils.translation import gettext_lazy as _
 import uuid
 
 class Agent(models.Model):
@@ -88,5 +89,21 @@ class EmotionSession(models.Model):
 
     def __str__(self):
         return f"Emotions for {self.session.session_id}"
+
+class UserProfile(models.Model):
+    LANGUAGE_CHOICES = [
+        ('en-IN', 'English (India)'),
+        ('hi-IN', 'Hindi (India)'),
+        ('ta-IN', 'Tamil (India)'),
+    ]
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    language = models.CharField(max_length=10, choices=LANGUAGE_CHOICES, default='en-IN')
+    dark_mode = models.BooleanField(default=False)
+    notifications = models.BooleanField(default=True)
+    consent_store_transcripts = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.user.username}'s profile"
 
 # Emotion monitoring moved to FastAPI ai_service

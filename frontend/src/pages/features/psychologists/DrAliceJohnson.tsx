@@ -1,14 +1,36 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
-import { Button } from '../../../components/ui/button';
-import { Badge } from '../../../components/ui/badge';
-import { Alert, AlertDescription } from '../../../components/ui/alert';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
-import { Checkbox } from '../../../components/ui/checkbox';
-import { Mic, MicOff, StopCircle, Volume2, VolumeX, AlertTriangle, Heart, ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { ThreeDModelViewer } from '../../../components/ui/ThreeDModelViewer';
-import { useLanguage } from '../../../contexts/LanguageContext';
+import React, { useState, useRef, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../../../components/ui/card";
+import { Button } from "../../../components/ui/button";
+import { Badge } from "../../../components/ui/badge";
+import { Alert, AlertDescription } from "../../../components/ui/alert";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../../components/ui/select";
+import { Checkbox } from "../../../components/ui/checkbox";
+import {
+  Mic,
+  MicOff,
+  StopCircle,
+  Volume2,
+  VolumeX,
+  AlertTriangle,
+  Heart,
+  ArrowLeft,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { ThreeDModelViewer } from "../../../components/ui/ThreeDModelViewer";
+import { useLanguage } from "../../../contexts/LanguageContext";
+import * as faceapi from "face-api.js";
 
 interface SessionResponse {
   session_id: string;
@@ -22,77 +44,180 @@ interface SessionResponse {
 }
 
 const DrAliceJohnson: React.FC = () => {
+  // Face emotion detection state
+  const [emotionData, setEmotionData] = useState<any>(null);
+  const [faceDetectionReady, setFaceDetectionReady] = useState<boolean>(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const emotionIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const [selectedLanguage, setSelectedLanguage] = useState<string>('en-IN');
+  const [selectedLanguage, setSelectedLanguage] = useState<string>("en-IN");
   const [consentGiven, setConsentGiven] = useState<boolean>(false);
   const [session, setSession] = useState<SessionResponse | null>(null);
   const [wsConnected, setWsConnected] = useState<boolean>(false);
   const [recording, setRecording] = useState<boolean>(false);
   const [audioPlaying, setAudioPlaying] = useState<boolean>(false);
-  const [transcripts, setTranscripts] = useState<Array<{role: 'user'|'assistant', text: string}>>([]);
-  const [connectionStatus, setConnectionStatus] = useState<string>('');
-  const [safetyAlert, setSafetyAlert] = useState<string>('');
+  const [transcripts, setTranscripts] = useState<
+    Array<{ role: "user" | "assistant"; text: string }>
+  >([]);
+  const [connectionStatus, setConnectionStatus] = useState<string>("");
+  const [safetyAlert, setSafetyAlert] = useState<string>("");
 
   const wsRef = useRef<WebSocket | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
   const languages = [
-    { code: 'en-IN', name: 'English (India)' },
-    { code: 'hi-IN', name: 'हिंदी (Hindi)' },
-    { code: 'ta-IN', name: 'தமிழ் (Tamil)' }
+    { code: "en-IN", name: "English (India)" },
+    { code: "hi-IN", name: "हिंदी (Hindi)" },
+    { code: "ta-IN", name: "தமிழ் (Tamil)" },
   ];
+
+  // Load face-api.js models and start video/emotion analysis
+  useEffect(() => {
+    const loadModelsAndStart = async () => {
+      try {
+        await Promise.all([
+          faceapi.nets.tinyFaceDetector.loadFromUri("/models"),
+          faceapi.nets.faceLandmark68Net.loadFromUri("/models"),
+          faceapi.nets.faceExpressionNet.loadFromUri("/models"),
+        ]);
+        setFaceDetectionReady(true);
+
+        // Start webcam for face analysis
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+
+        // Analyze emotions every 2 seconds
+        emotionIntervalRef.current = setInterval(async () => {
+          let facialEmotion = null;
+          if (videoRef.current && faceDetectionReady) {
+            const detections = await faceapi
+              .detectAllFaces(videoRef.current, new faceapi.TinyFaceDetectorOptions())
+              .withFaceLandmarks()
+              .withFaceExpressions();
+
+            if (detections && detections.length > 0) {
+              const faceExpression = detections[0].expressions;
+              facialEmotion = {
+                happy: faceExpression.happy || 0,
+                neutral: faceExpression.neutral || 0,
+                angry: faceExpression.angry || 0,
+                fearful: faceExpression.fearful || 0,
+                disgusted: faceExpression.disgusted || 0,
+                sad: faceExpression.sad || 0,
+                surprised: faceExpression.surprised || 0,
+                timestamp: new Date().toISOString(),
+              };
+              setEmotionData(facialEmotion);
+            }
+          }
+
+          // Fetch voice emotion (dummy, as we don't have live audio here)
+          let voiceEmotion = null;
+          try {
+            // You would send a short audio sample here; for now, just fetch dummy
+            const apiBaseUrl = import.meta.env.VITE_FASTAPI_URL || 'http://localhost:8001';
+            const resp = await fetch(`${apiBaseUrl}/voice-emotion`, {
+              method: "POST",
+              body: new FormData(), // Should append audio file in real use
+            });
+            if (resp.ok) {
+              voiceEmotion = await resp.json();
+            }
+          } catch (err) {
+            // Ignore errors for now
+          }
+
+          // Send combined emotion state to backend via WebSocket if connected
+          if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            wsRef.current.send(
+              JSON.stringify({
+                type: "emotion_state",
+                facial: facialEmotion,
+                vocal: voiceEmotion,
+                timestamp: new Date().toISOString(),
+              })
+            );
+          }
+        }, 2000);
+      } catch (err) {
+        setFaceDetectionReady(false);
+      }
+    };
+
+    loadModelsAndStart();
+
+    return () => {
+      if (emotionIntervalRef.current) clearInterval(emotionIntervalRef.current);
+      if (videoRef.current && videoRef.current.srcObject) {
+        (videoRef.current.srcObject as MediaStream)
+          .getTracks()
+          .forEach((track) => track.stop());
+      }
+    };
+  }, []);
 
   const startSession = async () => {
     // Redirect to video call page with psychologist and language parameters
-    navigate(`/video-call?psychologist=alice_johnson_academic&lang=${selectedLanguage}&consent=${consentGiven}`);
+    navigate(
+      `/video-call?psychologist=alice_johnson_academic&lang=${selectedLanguage}&consent=${consentGiven}`
+    );
   };
 
   const connectWebSocket = () => {
     if (!session?.ws_url) return;
 
-    setConnectionStatus('Connecting to AI service...');
+    setConnectionStatus("Connecting to AI service...");
     const ws = new WebSocket(session.ws_url);
 
     ws.onopen = () => {
       setWsConnected(true);
-      setConnectionStatus('Connected to AI service');
+      setConnectionStatus("Connected to AI service");
 
-      ws.send(JSON.stringify({
-        type: 'init',
-        token: session.ws_token
-      }));
+      ws.send(
+        JSON.stringify({
+          type: "init",
+          token: session.ws_token,
+        })
+      );
     };
 
     ws.onmessage = (event) => {
       const message = JSON.parse(event.data);
 
       switch (message.type) {
-        case 'connection_established':
+        case "connection_established":
           setConnectionStatus(`Connected to Dr. Alice Johnson`);
           break;
 
-        case 'final_transcript':
-          addTranscript('user', message.data.text);
+        case "final_transcript":
+          addTranscript("user", message.data.text);
           break;
 
-        case 'ai_text':
-          addTranscript('assistant', message.data.text);
-          if (message.data.text.includes('helpline') || message.data.text.includes('crisis')) {
-            setSafetyAlert('Safety alert: Please consider reaching out to professional help.');
+        case "ai_text":
+          addTranscript("assistant", message.data.text);
+          if (
+            message.data.text.includes("helpline") ||
+            message.data.text.includes("crisis")
+          ) {
+            setSafetyAlert(
+              "Safety alert: Please consider reaching out to professional help."
+            );
           }
           break;
 
-        case 'ai_audio_chunk':
+        case "ai_audio_chunk":
           setAudioPlaying(true);
           break;
 
-        case 'tts_complete':
+        case "tts_complete":
           setAudioPlaying(false);
           break;
 
-        case 'error':
+        case "error":
           alert(`Error: ${message.message}`);
           break;
       }
@@ -100,19 +225,19 @@ const DrAliceJohnson: React.FC = () => {
 
     ws.onclose = () => {
       setWsConnected(false);
-      setConnectionStatus('Disconnected from AI service');
+      setConnectionStatus("Disconnected from AI service");
     };
 
     ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      setConnectionStatus('Connection error');
+      console.error("WebSocket error:", error);
+      setConnectionStatus("Connection error");
     };
 
     wsRef.current = ws;
   };
 
-  const addTranscript = (role: 'user'|'assistant', text: string) => {
-    setTranscripts(prev => [...prev, { role, text }]);
+  const addTranscript = (role: "user" | "assistant", text: string) => {
+    setTranscripts((prev) => [...prev, { role, text }]);
   };
 
   const startRecording = async () => {
@@ -120,27 +245,41 @@ const DrAliceJohnson: React.FC = () => {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
 
-      mediaRecorder.ondataavailable = (event) => {
+      // Streaming STT logic
+      const [partialTranscript, setPartialTranscript] = useState<string>("");
+
+      mediaRecorder.ondataavailable = async (event) => {
         if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
+          const apiBaseUrl = import.meta.env.VITE_FASTAPI_URL || 'http://localhost:8001';
+          const formData = new FormData();
+          formData.append('audio_chunk', event.data, 'chunk.webm');
+          try {
+            const resp = await fetch(`${apiBaseUrl}/stream/stt`, {
+              method: 'POST',
+              body: formData
+            });
+            if (resp.ok) {
+              const data = await resp.json();
+              if (data.partial_text) {
+                setPartialTranscript(data.partial_text);
+              }
+            }
+          } catch (err) {
+            // Ignore errors for now
+          }
         }
       };
 
       mediaRecorder.onstop = () => {
         stream.getTracks().forEach(track => track.stop());
-        if (audioChunksRef.current.length > 0) {
-          sendAudioData(audioChunksRef.current);
-          audioChunksRef.current = [];
-        }
       };
 
-      mediaRecorder.start();
+      mediaRecorder.start(200); // 200ms chunks
       setRecording(true);
       mediaRecorderRef.current = mediaRecorder;
-
     } catch (error) {
-      console.error('Recording error:', error);
-      alert('Failed to access microphone');
+      console.error("Recording error:", error);
+      alert("Failed to access microphone");
     }
   };
 
@@ -152,21 +291,25 @@ const DrAliceJohnson: React.FC = () => {
   };
 
   const sendAudioData = (chunks: Blob[]) => {
-    const audioBlob = new Blob(chunks, { type: 'audio/webm;codecs=opus' });
+    const audioBlob = new Blob(chunks, { type: "audio/webm;codecs=opus" });
     const reader = new FileReader();
 
     reader.onload = () => {
-      const base64Audio = (reader.result as string).split(',')[1];
+      const base64Audio = (reader.result as string).split(",")[1];
 
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({
-          type: 'audio_chunk',
-          audio_data: base64Audio
-        }));
+        wsRef.current.send(
+          JSON.stringify({
+            type: "audio_chunk",
+            audio_data: base64Audio,
+          })
+        );
 
-        wsRef.current.send(JSON.stringify({
-          type: 'user_utterance_end'
-        }));
+        wsRef.current.send(
+          JSON.stringify({
+            type: "user_utterance_end",
+          })
+        );
       }
     };
     reader.readAsDataURL(audioBlob);
@@ -174,16 +317,17 @@ const DrAliceJohnson: React.FC = () => {
 
   const endSession = async () => {
     try {
-      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const apiBaseUrl =
+        import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
       await fetch(`${apiBaseUrl}/api/sessions/end/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          session_id: session?.session_id
-        })
+          session_id: session?.session_id,
+        }),
       });
     } catch (error) {
-      console.error('Session end error:', error);
+      console.error("Session end error:", error);
     }
 
     if (wsRef.current) {
@@ -193,42 +337,97 @@ const DrAliceJohnson: React.FC = () => {
     setSession(null);
     setWsConnected(false);
     setTranscripts([]);
-    setConnectionStatus('');
-    setSafetyAlert('');
+    setConnectionStatus("");
+    setSafetyAlert("");
   };
 
   const handleBargeIn = () => {
     if (wsRef.current && wsConnected) {
-      wsRef.current.send(JSON.stringify({
-        type: 'barge_in'
-      }));
+      wsRef.current.send(
+        JSON.stringify({
+          type: "barge_in",
+        })
+      );
     }
   };
 
   // Configuration for 3D models
   const psychologistConfig = {
-    name: 'Dr. Alice Johnson',
-    modelUrl: '/ALICE.glb', // Map to available 3D model
-    specialty: 'Academic Stress Specialist'
+    name: "Dr. Alice Johnson",
+    modelUrl: "/ALICE.glb", // Map to available 3D model
+    specialty: "Academic Stress Specialist",
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="max-w-4xl mx-auto space-y-6">
+        {/* Hidden video for face-api.js emotion detection */}
+        <video
+          ref={videoRef}
+          autoPlay
+          muted
+          playsInline
+          style={{ display: "none" }}
+        />
+        {/* Emotion status overlay */}
+        {emotionData && (
+          <div className="fixed top-4 left-4 bg-black bg-opacity-60 rounded-lg p-3 text-white text-xs z-50">
+            <p className="font-medium mb-1">Emotion Analysis</p>
+            <div className="space-y-1">
+              <p>😊 Happy: {(emotionData.happy * 100).toFixed(0)}%</p>
+              <p>😐 Neutral: {(emotionData.neutral * 100).toFixed(0)}%</p>
+              <p>😟 Sad: {(emotionData.sad * 100).toFixed(0)}%</p>
+            </div>
+          </div>
+        )}
+        {/* Real-time emotion graph (simple bar) */}
+        {emotionData && (
+          <div className="fixed top-24 left-4 bg-white bg-opacity-80 rounded-lg p-2 shadow z-50 w-56">
+            <div className="text-xs font-semibold mb-1 text-gray-700">Emotion Graph</div>
+            {["happy", "neutral", "sad"].map((emo) => (
+              <div key={emo} className="flex items-center mb-1">
+                <span className="w-10 capitalize text-gray-600">{emo}</span>
+                <div className="flex-1 bg-gray-200 rounded h-2 mx-2">
+                  <div
+                    className={`h-2 rounded ${emo === "happy"
+                      ? "bg-green-400"
+                      : emo === "neutral"
+                      ? "bg-blue-300"
+                      : "bg-yellow-400"
+                    }`}
+                    style={{ width: `${(emotionData[emo] * 100).toFixed(0)}%` }}
+                  ></div>
+                </div>
+                <span className="w-8 text-right text-gray-700">{(emotionData[emo] * 100).toFixed(0)}%</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {/* Safety indicator (risk level) */}
+        {safetyAlert && (
+          <div className="fixed top-44 left-4 bg-red-600 text-white rounded-lg px-4 py-2 shadow z-50 text-xs font-bold flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4" />
+            <span>Safety Alert: {safetyAlert}</span>
+          </div>
+        )}
         <header className="text-center">
           <Button
             variant="ghost"
-            onClick={() => navigate('/dashboard/video-conferencing')}
+            onClick={() => navigate("/dashboard/video-conferencing")}
             className="absolute top-4 left-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Video Conferencing
           </Button>
 
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">{t('psychologist_pages.alice_johnson.title')}</h1>
-          <p className="text-xl text-gray-600">{t('psychologist_pages.alice_johnson.subtitle')}</p>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+            {t("psychologist_pages.alice_johnson.title")}
+          </h1>
+          <p className="text-xl text-gray-600">
+            {t("psychologist_pages.alice_johnson.subtitle")}
+          </p>
           <p className="text-sm text-gray-500 mt-2">
-            {t('psychologist_pages.alice_johnson.description')}
+            {t("psychologist_pages.alice_johnson.description")}
           </p>
         </header>
 
@@ -236,20 +435,27 @@ const DrAliceJohnson: React.FC = () => {
         {!session && !wsConnected && (
           <Card>
             <CardHeader>
-              <CardTitle>{t('psychologist_pages.alice_johnson.session_title')}</CardTitle>
+              <CardTitle>
+                {t("psychologist_pages.alice_johnson.session_title")}
+              </CardTitle>
               <CardDescription>
-                {t('psychologist_pages.alice_johnson.session_description')}
+                {t("psychologist_pages.alice_johnson.session_description")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Preferred Language</label>
-                <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
+                <label className="text-sm font-medium">
+                  Preferred Language
+                </label>
+                <Select
+                  value={selectedLanguage}
+                  onValueChange={setSelectedLanguage}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {languages.map(lang => (
+                    {languages.map((lang) => (
                       <SelectItem key={lang.code} value={lang.code}>
                         {lang.name}
                       </SelectItem>
@@ -262,10 +468,13 @@ const DrAliceJohnson: React.FC = () => {
                 <Checkbox
                   id="consent"
                   checked={consentGiven}
-                  onCheckedChange={(checked) => setConsentGiven(checked as boolean)}
+                  onCheckedChange={(checked) =>
+                    setConsentGiven(checked as boolean)
+                  }
                 />
                 <label htmlFor="consent" className="text-sm">
-                  I consent to storing our conversation for improved personalized support
+                  I consent to storing our conversation for improved
+                  personalized support
                 </label>
               </div>
 
@@ -286,9 +495,11 @@ const DrAliceJohnson: React.FC = () => {
                   Session with Dr. Alice Johnson
                 </CardTitle>
                 <CardDescription>
-                  Academic Stress Support | Language: {selectedLanguage} | Status: {' '}
-                  <Badge variant={wsConnected ? 'default' : 'secondary'}>
-                    {connectionStatus || (wsConnected ? 'Connected' : 'Connecting...')}
+                  Academic Stress Support | Language: {selectedLanguage} |
+                  Status:{" "}
+                  <Badge variant={wsConnected ? "default" : "secondary"}>
+                    {connectionStatus ||
+                      (wsConnected ? "Connected" : "Connecting...")}
                   </Badge>
                 </CardDescription>
               </CardHeader>
@@ -301,7 +512,7 @@ const DrAliceJohnson: React.FC = () => {
                   <div className="flex gap-2">
                     <Button
                       onClick={recording ? stopRecording : startRecording}
-                      variant={recording ? 'destructive' : 'default'}
+                      variant={recording ? "destructive" : "default"}
                       className="flex-1"
                     >
                       {recording ? (
@@ -332,7 +543,9 @@ const DrAliceJohnson: React.FC = () => {
                       <VolumeX className="w-4 h-4 text-gray-400" />
                     )}
                     <span className="text-sm">
-                      {audioPlaying ? 'Dr. Alice Johnson is speaking...' : 'Waiting for your response'}
+                      {audioPlaying
+                        ? "Dr. Alice Johnson is speaking..."
+                        : "Waiting for your response"}
                     </span>
                   </div>
 
@@ -360,7 +573,8 @@ const DrAliceJohnson: React.FC = () => {
                   <CardHeader>
                     <CardTitle className="text-lg">3D Session View</CardTitle>
                     <CardDescription>
-                      Interact with Dr. Alice Johnson's 3D avatar during your conversation
+                      Interact with Dr. Alice Johnson's 3D avatar during your
+                      conversation
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -378,29 +592,38 @@ const DrAliceJohnson: React.FC = () => {
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>Your Conversation with Dr. Alice Johnson</CardTitle>
+                    <CardTitle>
+                      Your Conversation with Dr. Alice Johnson
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3 max-h-96 overflow-y-auto">
                       {transcripts.length === 0 ? (
                         <p className="text-gray-500 text-center py-8">
-                          Start speaking to begin your conversation with Dr. Alice Johnson...
+                          Start speaking to begin your conversation with Dr.
+                          Alice Johnson...
                         </p>
                       ) : (
                         transcripts.map((transcript, index) => (
                           <div
                             key={index}
-                            className={`flex ${transcript.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                            className={`flex ${
+                              transcript.role === "user"
+                                ? "justify-end"
+                                : "justify-start"
+                            }`}
                           >
                             <div
                               className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                                transcript.role === 'user'
-                                  ? 'bg-blue-600 text-white'
-                                  : 'bg-blue-100 text-blue-800 border border-blue-300'
+                                transcript.role === "user"
+                                  ? "bg-blue-600 text-white"
+                                  : "bg-blue-100 text-blue-800 border border-blue-300"
                               }`}
                             >
                               <p className="text-sm font-medium mb-1">
-                                {transcript.role === 'assistant' ? 'Dr. Alice Johnson:' : 'You:'}
+                                {transcript.role === "assistant"
+                                  ? "Dr. Alice Johnson:"
+                                  : "You:"}
                               </p>
                               <p className="text-sm">{transcript.text}</p>
                             </div>
@@ -417,29 +640,38 @@ const DrAliceJohnson: React.FC = () => {
             {!wsConnected && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Your Conversation with Dr. Alice Johnson</CardTitle>
+                  <CardTitle>
+                    Your Conversation with Dr. Alice Johnson
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3 max-h-96 overflow-y-auto">
                     {transcripts.length === 0 ? (
                       <p className="text-gray-500 text-center py-8">
-                        Start speaking to begin your conversation with Dr. Alice Johnson...
+                        Start speaking to begin your conversation with Dr. Alice
+                        Johnson...
                       </p>
                     ) : (
                       transcripts.map((transcript, index) => (
                         <div
                           key={index}
-                          className={`flex ${transcript.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                          className={`flex ${
+                            transcript.role === "user"
+                              ? "justify-end"
+                              : "justify-start"
+                          }`}
                         >
                           <div
                             className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                              transcript.role === 'user'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-blue-100 text-blue-800 border border-blue-300'
+                              transcript.role === "user"
+                                ? "bg-blue-600 text-white"
+                                : "bg-blue-100 text-blue-800 border border-blue-300"
                             }`}
                           >
                             <p className="text-sm font-medium mb-1">
-                              {transcript.role === 'assistant' ? 'Dr. Alice Johnson:' : 'You:'}
+                              {transcript.role === "assistant"
+                                ? "Dr. Alice Johnson:"
+                                : "You:"}
                             </p>
                             <p className="text-sm">{transcript.text}</p>
                           </div>

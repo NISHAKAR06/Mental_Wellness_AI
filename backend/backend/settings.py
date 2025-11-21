@@ -137,3 +137,7 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 # Default primary key field type
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# AI Service Integration
+FASTAPI_URL = os.getenv("FASTAPI_URL", "http://localhost:8001")
+INTERNAL_AI_TOKEN = os.getenv("INTERNAL_AI_TOKEN", "your-secret-token-here")

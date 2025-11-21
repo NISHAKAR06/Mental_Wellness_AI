@@ -420,6 +420,7 @@ node --version  # Should be 18+
 - 🌍 **Multilingual Support**: English, Hindi, Tamil language support
 - 📱 **Responsive Design**: Mobile-first, accessible interface
 - 🔒 **Secure Architecture**: End-to-end encryption and privacy protection
+- 🎥 **Immersive Video Call Rooms**: Cinematic teletherapy stage with live 3D avatars and floating controls
 
 ### AI-Powered Capabilities
 - **Voice Stress Detection**: Physiological stress analysis through vocal patterns
@@ -442,6 +443,27 @@ node --version  # Should be 18+
 - **Progress Tracking**: Measurable improvement metrics
 - **Accessibility**: No additional hardware required
 - **Evidence-Based**: Techniques grounded in cognitive behavioral therapy
+
+## 🎥 Video Session Experience
+
+The refreshed video-call flow mirrors the reference UI shared in the design brief and lives at `http://localhost:5173/video-call` (or the corresponding route once deployed).
+
+### Layout Highlights
+- **3D Therapist Avatar**: Rendered via `ThreeDModelViewer`, centered on a soft-gradient stage with tuned camera/position props for better framing.
+- **Patient Preview**: Personal webcam feed pinned to the **bottom-left** corner with a live indicator so participants always know when their camera is active.
+- **Status Header**: Right-aligned status chip showing Wi-Fi signal, elapsed session time, and WebSocket connection status.
+- **Floating Control Dock**: Always-on-top, translucent pill housing Speaker, Mic, Camera, and End Call buttons with tactile animations.
+
+### Launching the Experience Locally
+1. Start the Django backend (`python manage.py runserver`) and the AI FastAPI service if you want live transcription/emotion features.
+2. Start the React app from `frontend/` using `npm run dev`.
+3. Visit `http://localhost:5173/video-call?psychologist=alice_johnson_academic&lang=en-IN` to load the full experience.
+4. Use browser devtools or Tailwind classes inside `frontend/src/pages/VideoCall.tsx` to swap avatars (`/ALICE.glb`, `/BLACK.glb`, `/SARAH.glb`) or fine-tune the scene.
+
+### Customization Notes
+- Preview placement, control spacing, and camera framing can be tweaked via the utility classes inside `VideoCall.tsx`.
+- `ThreeDModelViewer` accepts `modelUrl`, `scale`, `modelPosition`, and `cameraPosition` props so new avatars can drop in without code refactors.
+- The control dock is decoupled from business logic, making it straightforward to plug in future gestures (e.g., screen-share, transcript overlay) without redesigning the layout.
 
 ## 🔒 Safety & Compliance
 
@@ -479,70 +501,83 @@ node --version  # Should be 18+
 - `GET /health` - AI service health check
 - `POST /api/summarize/` - Generate session summary
 
-## 🚀 Free Cloud Deployment Guide
+## 🚀 Cloud Deployment Guide
 
 ### 🎯 Recommended Platforms
 - **Frontend**: [Vercel](https://vercel.com) (Free tier: 100GB/month, auto-deploy from GitHub)
-- **Backend & AI Service**: [Railway](https://railway.app) (Free tier: $5 credit, PostgreSQL included)
-- **Database**: Railway PostgreSQL (No additional cost)
+- **Backend & AI Service**: [Render](https://render.com) (Free tier: 750 hours/month, PostgreSQL included)
+- **Database**: Render PostgreSQL (No additional cost)
 - **Monitoring**: Built-in with both platforms
 
+### Alternative Platform
+- **Backend & AI Service**: [Railway](https://railway.app) (Free tier: $5 credit, PostgreSQL included)
+
+### 📚 Complete Deployment Guides
+
+This project is **fully configured for production deployment on Render**. All necessary files are included:
+
+- **[📖 RENDER_DEPLOYMENT_GUIDE.md](RENDER_DEPLOYMENT_GUIDE.md)** - Complete step-by-step guide for Render deployment
+  - PostgreSQL database setup
+  - Django backend deployment
+  - FastAPI AI service deployment
+  - Environment configuration
+  - Troubleshooting guide
+  - Cost optimization tips
+
+- **[⚡ RENDER_QUICK_REFERENCE.md](RENDER_QUICK_REFERENCE.md)** - Quick commands and checklists
+  - Pre-deployment checklist
+  - Environment variables template
+  - Test commands
+  - Common issues & fixes
+
+### 🚀 Quick Deploy to Render
+
+**Prerequisites:**
+1. GitHub repository with latest code ✅
+2. [Render account](https://render.com) (free tier available)
+3. [Google Gemini API key](https://aistudio.google.com/)
+4. Frontend deployed on Vercel (optional but recommended)
+
+**Deploy in 3 steps:**
+
+1. **Create PostgreSQL Database**
+   - Go to Render → New → PostgreSQL
+   - Copy the Internal Database URL
+
+2. **Deploy Backend**
+   - Render → New → Web Service
+   - Connect GitHub repo, Root directory: `backend`
+   - Build: `./build.sh`
+   - Start: `daphne -b 0.0.0.0 -p $PORT backend.asgi:application`
+   - Add environment variables (see guide)
+
+3. **Deploy AI Service**
+   - Render → New → Web Service
+   - Same repo, Root directory: `ai_service`
+   - Build: `pip install -r requirements.txt`
+   - Start: `uvicorn ai_service.main:app --host 0.0.0.0 --port $PORT`
+   - Add environment variables (see guide)
+
+**📋 See [RENDER_DEPLOYMENT_GUIDE.md](RENDER_DEPLOYMENT_GUIDE.md) for detailed instructions.**
+
 ### Estimated Monthly Costs:
-- **Development/Testing**: $0-5/month within free limits
-- **100-500 users**: $20-60/month
-- **500-2000 users**: $50-120/month
+- **Development/Testing**: $0-7/month (free database + free backend + starter AI service)
+- **Production**: $21/month (all starter tier services)
+- **High Traffic**: $70/month (standard tier services)
 
-### 📋 Quick Deployment Steps
+### � Deployment Files Included
 
-#### Prerequisites:
-1. Create accounts: [Railway](https://railway.app), [Vercel](https://vercel.com)
-2. Get Google Gemini API key: [Google AI Studio](https://aistudio.google.com/)
-3. Push all code to GitHub repository
+This project includes all configuration files needed for Render deployment:
+- ✅ `backend/build.sh` - Automated build script with migrations
+- ✅ `render.yaml` - Infrastructure-as-code configuration
+- ✅ `backend/.env.production.example` - Production environment template
+- ✅ `ai_service/.env.production.example` - AI service environment template
+- ✅ Backend already configured with Daphne (ASGI server)
+- ✅ Static files configured with Whitenoise
+- ✅ PostgreSQL ready with psycopg2-binary
+- ✅ CORS and security settings production-ready
 
-#### Step 1: Deploy Backend & Database to Railway
-```bash
-# 1. Go to railway.app/new
-# 2. Connect your GitHub repository
-# 3. Railway auto-detects Django backend
-# 4. In Railway dashboard → Add PostgreSQL plugin
-# 5. Set environment variables:
-SECRET_KEY=django-insecure-$(openssl rand -hex 32)
-DEBUG=False
-ALLOWED_HOSTS=your-railway-app.railway.app
-DATABASE_URL=postgresql://... (auto-generated)
-GEMINI_API_KEY=your-gemini-key
-```
-
-#### Step 2: Deploy AI Service to Railway
-```bash
-# 1. In Railway project → Add Service
-# 2. Connect same GitHub repo, set root directory: ai_service/
-# 3. Set environment variables:
-PORT=8001
-GEMINI_API_KEY=your-gemini-key
-GOOGLE_CLOUD_PROJECT=your-gcp-project
-```
-
-#### Step 3: Deploy Frontend to Vercel
-```bash
-# 1. Go to vercel.com/new
-# 2. Connect GitHub repository
-# 3. Set root directory: frontend/
-# 4. Set environment variables:
-VITE_API_BASE_URL=https://your-railway-backend.railway.app
-VITE_AI_SERVICE_URL=https://your-railway-ai-service.railway.app
-```
-
-#### Step 4: Test Your Live Application
-```bash
-# Test endpoints:
-curl https://your-backend.railway.app/api/health/
-curl https://your-ai-service.railway.app/health
-
-# Visit your Vercel URL to use the app!
-```
-
-### 📚 Detailed Deployment Guide
+### 📋 Alternative: Railway Deployment
 For complete step-by-step instructions with screenshots and troubleshooting:
 - **[`deployment_steps.md`](deployment_steps.md)**: Comprehensive deployment walkthrough
 - **[`deployment_guide.md`](deployment_guide.md)**: Platform comparisons and architecture
@@ -563,30 +598,56 @@ frontend/vercel.json             # Vercel deployment config
 ```
 
 ### 🔒 Security & SSL
-- **Automatic SSL**: Both Vercel and Railway provide free SSL certificates
+- **Automatic SSL**: Both Vercel and Render provide free SSL certificates
 - **Environment Security**: Use platform-specific secure environment variable storage
-- **Database Encryption**: Railway PostgreSQL automatically encrypts data
+- **Database Encryption**: Render PostgreSQL automatically encrypts data
 
 ### 🚨 Troubleshooting Issues
 ```bash
 # Common fixes:
-1. CORS errors: Update CORS_ALLOWED_ORIGINS in Railway
-2. WebSocket issues: Check railway.app firewall settings
-3. Build failures: Check Railway/Vercel build logs
+1. CORS errors: Update CORS_ALLOWED_ORIGINS in Render service environment
+2. WebSocket issues: Check Render firewall settings (default allows WebSockets)
+3. Build failures: Check Render/Vercel build logs
 4. API timeouts: Verify service URLs are correct
+5. Database connection: Ensure DATABASE_URL is correct for Render PostgreSQL
+6. Port issues: Render uses 10000+ ports, check your service port settings
 ```
 
 ### 📊 Monitoring & Scaling
-- **Free Monitoring**: Built into Railway and Vercel dashboards
+- **Free Monitoring**: Built into Render and Vercel dashboards
 - **User Analytics**: Vercel Analytics available
 - **Auto-scaling**: Both platforms scale automatically
-- **Backup**: Railway provides automatic database backups
+- **Backup**: Render provides automatic database backups
 
 ### 💰 Cost Optimization Tips
-- Monitor Railway usage dashboard to stay within free tier
+- Monitor Render usage dashboard to stay within 750 free hours
 - Enable Vercel Analytics only when needed (adds to bill)
 - Optimize API calls to reduce Gemini costs
+- Use Render's free tier for development before scaling up
 - Set up billing alerts to avoid surprises
+
+## 🚀 Render-Specific Deployment Notes
+
+### Database Setup
+- Render PostgreSQL provides INTERNAL_DATABASE_URL for private networking
+- Use EXTERNAL_DATABASE_URL if connecting from external services
+- Free tier: 1GB storage, upgrade as needed for production
+
+### Web Service Configuration
+- **Instance Type**: Choose based on resource needs (Free tier: 512MB RAM)
+- **Environment**: Always set to Production for deployed apps
+- **Root Directory**: Specify backend/ for Django, ai_service/ for FastAPI
+- **Build Timeout**: Default 15 minutes, sufficient for most builds
+
+### Environment Variables
+- Always store secrets in Render environment variables (not in code)
+- Update and redeploy when changing environment variables
+- Use Render's shared environment groups for multiple services
+
+### Scaling Considerations
+- Start with Free tier for testing
+- Upgrade to Starter ($7/month) for light production
+- Pro tiers available for high-traffic applications
 
 ## 🧪 Testing & Quality Assurance
 
@@ -653,17 +714,9 @@ This platform is designed to complement, not replace, professional mental health
 - Cultural adaptation modules
 - Cross-border healthcare collaboration
 
-## 📞 Support & Documentation
-
-- **Documentation**: [docs.mentalwellnessai.com](https://docs.mentalwellnessai.com)
-- **API Reference**: [api.mentalwellnessai.com](https://api.mentalwellnessai.com)
-- **Community**: [Discord Server](https://discord.gg/mentalwellnessai)
-- **Support**: support@mentalwellnessai.com
 
 ## 🙏 Acknowledgments
 
 This project was developed with guidance from mental health professionals and AI ethicists. Special thanks to our clinical advisors and technology partners who helped shape a responsible, accessible mental health solution.
 
 ---
-
-**Made with ❤️ for mental wellness worldwide**

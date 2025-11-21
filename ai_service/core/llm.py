@@ -22,7 +22,7 @@ else:
 
 class LLMHandler:
     def __init__(self):
-        self.model_name = "gemini-1.5-flash"
+        self.model_name = "gemini-2.5-flash"
         self.generation_config = GenerationConfig(
             temperature=0.4,
             max_output_tokens=250,  # Keep responses short

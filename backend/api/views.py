@@ -3,11 +3,18 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework import viewsets
 import json
 import jwt
 from datetime import datetime, timedelta
 import google.generativeai as genai
-from api.models import Agent, VoiceSession, SafetyAlert
+from .models import Agent, VoiceSession, SafetyAlert, UserProfile
+from .serializers import RegisterSerializer, UserSerializer, AgentSerializer, VoiceSessionSerializer, SafetyAlertSerializer
 
 # Configure the Gemini API key
 genai.configure(api_key=settings.GEMINI_API_KEY)
@@ -19,6 +26,12 @@ User = get_user_model()
 @csrf_exempt
 def get_agents(request):
     if request.method == 'GET':
+        # First try to get agents from FastAPI service (built-in agents)
+        fastapi_agents = get_agents_from_fastapi()
+        if fastapi_agents:
+            return JsonResponse({'agents': fastapi_agents})
+
+        # Fallback to Django database
         agents = Agent.objects.filter(active=True).order_by('name')
         agents_data = []
         for agent in agents:
@@ -33,6 +46,30 @@ def get_agents(request):
         return JsonResponse({'agents': agents_data})
     else:
         return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+def get_agents_from_fastapi():
+    """Get agents from FastAPI AI service directly"""
+    try:
+        fastapi_url = getattr(settings, 'FASTAPI_URL', 'http://localhost:8001')
+        import requests
+        response = requests.get(f"{fastapi_url}/agents", timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            # Convert to format expected by frontend
+            agents = []
+            for agent in data.get('agents', []):
+                agents.append({
+                    'id': agent['id'],
+                    'name': agent['name'],
+                    'domain': agent['domain'],
+                    'languages': agent['languages'],
+                    'description': agent['description'],
+                    'voice_prefs': agent['voice_prefs']
+                })
+            return agents
+    except Exception as e:
+        print(f"FastAPI agents unavailable: {e}")
+    return []
 
 @csrf_exempt
 def get_agent_by_id(request, agent_id):
@@ -69,8 +106,24 @@ def start_session(request):
             if not agent_id:
                 return JsonResponse({'error': 'agent_id is required'}, status=400)
 
-            # Get agent
-            agent = Agent.objects.get(agent_id=agent_id, active=True)
+            # Try to get agent from Django DB first, then FastAPI
+            try:
+                agent = Agent.objects.get(agent_id=agent_id, active=True)
+            except Agent.DoesNotExist:
+                # Try to get from FastAPI service built-in agents
+                fastapi_agents = get_agents_from_fastapi()
+                matching_agent = next((a for a in fastapi_agents if a['id'] == agent_id), None)
+                if matching_agent:
+                    # Create a temporary agent-like object for session creation
+                    from django.contrib.auth.models import User
+                    class TempAgent:
+                        def __init__(self, data):
+                            self.agent_id = data['id']
+                            self.name = data['name']
+                            self.voice_prefs = data['voice_prefs']
+                    agent = TempAgent(matching_agent)
+                else:
+                    return JsonResponse({'error': 'Agent not found'}, status=404)
 
             # Create or get demo user for testing (in production, use authenticated user)
             user, created = get_user_model().objects.get_or_create(
@@ -203,8 +256,29 @@ def summarize_session(request):
         session_notes = data.get('session_notes', '')
 
         try:
-            # Generate the summary using the Gemini API
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            # Check if API key is configured
+            if not settings.GEMINI_API_KEY:
+                return JsonResponse({'error': 'Gemini API key not configured'}, status=500)
+
+            # Try different model names in order of preference
+            model_names = ['gemini-2.5-flash', 'gemini-2.5-flash-preview-05-20', 'gemini-2.5-pro-preview-03-25']
+            model = None
+
+            for model_name in model_names:
+                try:
+                    model = genai.GenerativeModel(model_name)
+                    # Test the model with a simple request
+                    test_response = model.generate_content("Test")
+                    if test_response:
+                        print(f"✅ Using Gemini model: {model_name}")
+                        break
+                except Exception as e:
+                    print(f"❌ Model {model_name} not available: {e}")
+                    continue
+
+            if not model:
+                return JsonResponse({'error': 'No available Gemini models found. Please check your API key and model availability.'}, status=500)
+
             prompt = f"""
             Analyze the following therapy session notes and generate a summary in the following format:
 
@@ -231,19 +305,196 @@ def summarize_session(request):
             Session Notes:
             {session_notes}
             """
+
             response = model.generate_content(prompt)
 
             # Parse the response and format it as JSON
             summary = parse_summary(response.text)
 
             return JsonResponse(summary)
+
         except Exception as e:
             print(f"An error occurred during Gemini API call: {e}")
-            return JsonResponse({'error': str(e)}, status=500)
+            return JsonResponse({'error': f'Gemini API error: {str(e)}'}, status=500)
     else:
         return JsonResponse({'error': 'Invalid request method'}, status=405)
 
+# Auth Views
+
+class RegisterView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = RegisterSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'user': UserSerializer(user).data,
+                'tokens': {
+                    'refresh': str(refresh),
+                    'access': str(refresh.access_token),
+                }
+            }, status=201)
+        return Response(serializer.errors, status=400)
+
+@api_view(['GET', 'PUT'])
+@permission_classes([IsAuthenticated])
+def user_me(request):
+    if request.method == 'GET':
+        serializer = UserSerializer(request.user)
+        return Response(serializer.data)
+    elif request.method == 'PUT':
+        serializer = UserSerializer(request.user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
+
+# Agents ViewSet
+
+class AgentViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Agent.objects.filter(active=True)
+    serializer_class = AgentSerializer
+    lookup_field = 'agent_id'
+
+# Sessions API
+
+from rest_framework.views import APIView
+from rest_framework.parsers import JSONParser
+
+class SessionSummaryView(APIView):
+    permission_classes = [IsAuthenticated]
+    parser_classes = [JSONParser]
+
+    def post(self, request):
+        data = request.data
+        session_id = data.get("session_id")
+        transcript = data.get("transcript")
+        summary = data.get("summary")
+        emotion_timeline = data.get("emotion_timeline")
+        risk_outcomes = data.get("risk_outcomes")
+
+        if not session_id:
+            return Response({"error": "session_id is required"}, status=400)
+        try:
+            session = VoiceSession.objects.get(session_id=session_id, user=request.user)
+            session.transcript = transcript
+            session.summary = summary
+            session.emotion_timeline = emotion_timeline
+            session.risk_outcomes = risk_outcomes
+            session.save()
+            return Response({"message": "Session summary saved"})
+        except VoiceSession.DoesNotExist:
+            return Response({"error": "Session not found"}, status=404)
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def start_session_view(request):
+    try:
+        data = request.data
+        agent_id = data.get('agent_id')
+        lang = data.get('lang', 'en-IN')
+        consent_store = data.get('consent_store', False)
+
+        if not agent_id:
+            return Response({'error': 'agent_id is required'}, status=400)
+
+        agent = Agent.objects.get(agent_id=agent_id, active=True)
+        session = VoiceSession.objects.create(
+            user=request.user,
+            agent=agent,
+            lang=lang,
+            consented_store=consent_store
+        )
+
+        token_payload = {
+            'user_id': request.user.id,
+            'session_id': str(session.session_id),
+            'agent_id': agent.agent_id,
+            'lang': lang,
+            'consent': consent_store,
+            'exp': datetime.utcnow() + timedelta(minutes=10)
+        }
+        token = jwt.encode(token_payload, settings.SECRET_KEY, algorithm='HS256')
+
+        return Response({
+            'session_id': str(session.session_id),
+            'ws_url': f'wss://{settings.FASTAPI_WS_URL or "localhost:8001"}/ws/v1/voice_session',
+            'ws_token': token if isinstance(token, str) else token.decode('utf-8'),
+            'agent': AgentSerializer(agent).data
+        })
+
+    except Agent.DoesNotExist:
+        return Response({'error': 'Agent not found'}, status=404)
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def end_session_view(request):
+    try:
+        session_id = request.data.get('session_id')
+        if not session_id:
+            return Response({'error': 'session_id is required'}, status=400)
+
+        session = VoiceSession.objects.get(session_id=session_id, user=request.user)
+        session.ended_at = timezone.now()
+        session.duration_sec = (session.ended_at - session.started_at).total_seconds()
+        session.save()
+
+        return Response({'message': 'Session ended'})
+
+    except VoiceSession.DoesNotExist:
+        return Response({'error': 'Session not found'}, status=404)
+
+# Internal AI Alerts
+
+@api_view(['POST'])
+@permission_classes([])  # AllowAny but with header check
+def create_safety_alert_view(request):
+    auth_token = request.headers.get('X-Internal-Token')
+    if auth_token != settings.INTERNAL_AI_TOKEN:
+        return Response({'error': 'Unauthorized'}, status=401)
+
+    try:
+        session = VoiceSession.objects.get(session_id=request.data.get('session_id'))
+        alert = SafetyAlert.objects.create(
+            user=session.user if request.data.get('user_id') else None,
+            session=session,
+            risk_level=request.data['risk_level'],
+            summary=request.data['summary']
+        )
+        if request.data['risk_level'] in ['medium', 'high']:
+            session.risk_level = request.data['risk_level']
+            session.save()
+        return Response({'alert_id': alert.id})
+
+    except VoiceSession.DoesNotExist:
+        return Response({'error': 'Session not found'}, status=404)
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+# Token Obtain with Profile
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        if response.status_code == 200:
+            user = self.get_user_from_token(response.data['access'])
+            response.data['user'] = UserSerializer(user).data
+        return response
+
+    def get_user_from_token(self, token):
+        from rest_framework_simplejwt.tokens import AccessToken
+        access_token = AccessToken(token)
+        user_id = access_token['user_id']
+        return User.objects.get(id=user_id)
+
 def parse_summary(text):
+    """Parse the detailed summary format with ** headers"""
     summary = {
         'mainThemes': [],
         'keyInsights': [],
@@ -253,14 +504,32 @@ def parse_summary(text):
     current_section = None
     for line in text.split('\n'):
         line = line.strip()
-        if line.startswith('**Main Themes:**'):
+        if not line:
+            continue
+
+        # Match original format with ** headers
+        if '**Main Themes:**' in line:
             current_section = 'mainThemes'
-        elif line.startswith('**Key Insights:**'):
+        elif '**Key Insights:**' in line:
             current_section = 'keyInsights'
-        elif line.startswith('**Action Items:**'):
+        elif '**Action Items:**' in line:
             current_section = 'actionItems'
-        elif line.startswith('**Next Session Goals:**'):
+        elif '**Next Session Goals:**' in line:
             current_section = 'nextSessionGoals'
         elif line.startswith('- ') and current_section:
-            summary[current_section].append(line[2:])
+            # Extract content after "- " and clean up [Item 1] format
+            content = line[2:].strip()
+            # Remove brackets if present and clean content
+            if content.startswith('[') and content.endswith(']'):
+                content = content[1:-1].strip()
+            if content:
+                summary[current_section].append(content)
+        elif current_section and line.startswith('-'):
+            # Handle cases where the - formatting might be slightly different
+            content = line[1:].strip() if line[1:].strip() else line[2:].strip()
+            if content.startswith('[') and content.endswith(']'):
+                content = content[1:-1].strip()
+            if content:
+                summary[current_section].append(content)
+
     return summary

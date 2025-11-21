@@ -2,7 +2,14 @@ import React, { Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useGLTF, Environment, Html } from "@react-three/drei";
 
-function Model({ url, scale = 1 }: { url: string; scale?: number }) {
+interface ModelProps {
+  url: string;
+  scale?: number;
+  mouthOpen?: boolean;
+  position?: [number, number, number];
+}
+
+function Model({ url, scale = 1, mouthOpen = false, position = [0, -1, 0] }: ModelProps) {
   // Add error boundary and safer GLTF loading
   try {
     console.log("Loading 3D model:", url);
@@ -17,14 +24,25 @@ function Model({ url, scale = 1 }: { url: string; scale?: number }) {
       );
     }
 
-    console.log("✅ 3D model loaded successfully:", url);
+    // Minimal mouth animation: add a sphere as mouth, scale Y when mouthOpen
     return (
-      <primitive
-        object={scene}
-        scale={[scale, scale, scale]}
-        position={[0, -1, 0]}
-        rotation={[0, 0, 0]}
-      />
+      <group>
+        <primitive
+          object={scene}
+          scale={[scale, scale, scale]}
+          position={position}
+          rotation={[0, 0, 0]}
+        />
+        {/* Simple animated mouth (placeholder) */}
+        <mesh
+          position={[0, -0.2, 0.8]}
+          visible
+          scale={[1, mouthOpen ? 1.8 : 1, 1]}
+        >
+          <sphereGeometry args={[0.07, 16, 16]} />
+          <meshStandardMaterial color={mouthOpen ? "#ff4d4d" : "#222"} />
+        </mesh>
+      </group>
     );
   } catch (error) {
     console.error("❌ GLTF loading error for", url, ":", error);
@@ -42,6 +60,9 @@ interface ThreeDModelViewerProps {
   backgroundColor?: string;
   showControls?: boolean;
   voicePlaying?: boolean;
+  showSessionBanner?: boolean;
+  modelPosition?: [number, number, number];
+  cameraPosition?: [number, number, number];
 }
 
 export function ThreeDModelViewer({
@@ -50,6 +71,9 @@ export function ThreeDModelViewer({
   backgroundColor = "#1a1a2e",
   showControls = true,
   voicePlaying = false,
+  showSessionBanner = true,
+  modelPosition = [0, -1, 0],
+  cameraPosition = [0, 0, 3],
 }: ThreeDModelViewerProps) {
   // Debug: Check if model file exists
   React.useEffect(() => {
@@ -72,9 +96,12 @@ export function ThreeDModelViewer({
   }, [modelUrl]);
 
   return (
-    <div style={{ width: "100%", height: "100%", minHeight: "400px" }}>
+    <div
+      className="relative"
+      style={{ width: "100%", height: "100%", minHeight: "400px" }}
+    >
       <Canvas
-        camera={{ position: [0, 0, 3], fov: 50 }}
+        camera={{ position: cameraPosition, fov: 50 }}
         style={{ backgroundColor }}
       >
         <Suspense
@@ -95,7 +122,12 @@ export function ThreeDModelViewer({
           {/* Environment for better lighting and reflections */}
           <Environment preset="studio" />
 
-          <Model url={modelUrl} scale={scale} />
+          <Model
+            url={modelUrl}
+            scale={scale}
+            mouthOpen={voicePlaying}
+            position={modelPosition}
+          />
 
           {/* Audio indicator */}
           {voicePlaying && (
@@ -121,10 +153,13 @@ export function ThreeDModelViewer({
         )}
       </Canvas>
 
-      {/* Subtitles area */}
-      <div className="absolute bottom-4 left-4 right-4 bg-black bg-opacity-50 rounded-lg p-3 text-white">
-        <div className="text-sm opacity-80">AI Psychologist Session Active</div>
-      </div>
+      {showSessionBanner && (
+        <div className="absolute bottom-4 left-4 right-4 rounded-lg bg-black bg-opacity-50 p-3 text-white">
+          <div className="text-sm opacity-80">
+            AI Psychologist Session Active
+          </div>
+        </div>
+      )}
     </div>
   );
 }

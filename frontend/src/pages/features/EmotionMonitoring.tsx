@@ -289,16 +289,27 @@ export default function EmotionMonitoring() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
   const startVideo = () => {
+    console.log('🎥 Attempting to start video stream...');
     navigator.mediaDevices
       .getUserMedia({ video: true, audio: true })
       .then((stream) => {
+        console.log('✅ Camera access granted, stream received');
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
+          console.log('📹 Video stream assigned to video element');
           setError(null);
+
+          // Check if video dimensions are available
+          videoRef.current.onloadedmetadata = () => {
+            console.log(`📐 Video dimensions: ${videoRef.current?.videoWidth}x${videoRef.current?.videoHeight}`);
+            setVideoReady(true); // Mark video as ready
+          };
+        } else {
+          console.error('❌ Video element ref is null');
         }
       })
       .catch((err) => {
-        console.error(err);
+        console.error('❌ Camera access denied:', err);
         setError(t("emotionmonitoring.camera_permission"));
         setIsMonitoring(false);
       });
@@ -328,8 +339,7 @@ export default function EmotionMonitoring() {
     if (isMonitoring) {
       // Only create WebSocket if not already connected
       if (!ws.current || ws.current.readyState === WebSocket.CLOSED) {
-        const wsUrl =
-          import.meta.env.VITE_WS_BASE_URL || "ws://localhost:8000/ws/emotions/";
+        const wsUrl = import.meta.env.VITE_WS_BASE_URL || "ws://localhost:8001/ws/emotions/";
         ws.current = new WebSocket(wsUrl);
 
         ws.current.onopen = () => {
@@ -510,9 +520,10 @@ export default function EmotionMonitoring() {
     }
   }, [isMonitoring, videoRef.current?.srcObject]);
 
-  // Send emotion data continuously when monitoring is active
+  // Send emotion data continuously when monitoring is active and video is ready
+  const [videoReady, setVideoReady] = useState(false);
   useEffect(() => {
-    if (isMonitoring && ws.current && videoRef.current?.srcObject) {
+    if (isMonitoring && ws.current && videoRef.current?.srcObject && videoReady) {
       // Function to capture and send emotion data
       const sendEmotionData = () => {
         if (
@@ -532,7 +543,7 @@ export default function EmotionMonitoring() {
               ws.current.send(
                 JSON.stringify({ type: "image", image_data: dataUrl })
               );
-              console.log("Sent emotion analysis request"); // Debug log
+              console.log("📤 Sent emotion analysis request to backend");
             }
           } catch (error) {
             console.error("Error sending emotion data:", error);
@@ -541,8 +552,8 @@ export default function EmotionMonitoring() {
       };
 
       // Send immediately, then every 2 seconds
-      sendEmotionData(); // Send first frame immediately
-      intervalRef.current = setInterval(sendEmotionData, 2000); // Every 2 seconds
+      sendEmotionData();
+      intervalRef.current = setInterval(sendEmotionData, 2000);
 
       return () => {
         if (intervalRef.current) {
@@ -556,7 +567,7 @@ export default function EmotionMonitoring() {
         clearInterval(intervalRef.current);
       }
     };
-  }, [isMonitoring, videoRef.current?.srcObject]);
+  }, [isMonitoring, videoRef.current?.srcObject, videoReady]);
 
   // Calculate vital signs from voice analysis data (no translations)
   const getVoiceStressLevel = () => {

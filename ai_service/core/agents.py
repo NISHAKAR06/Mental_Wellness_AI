@@ -70,17 +70,73 @@ def load_agent_from_django(agent_id: str) -> AgentConfig:
     return _get_fallback_agent(agent_id)
 
 def get_agent(agent_id: str) -> AgentConfig:
-    """Get agent configuration, using cache when available"""
+    """Get agent configuration, prioritizing built-in agents over Django"""
     if agent_id not in _cache:
-        _cache[agent_id] = load_agent_from_django(agent_id)
+        # First try to get from built-in agents
+        all_agents = get_all_agents()
+        if agent_id in all_agents:
+            _cache[agent_id] = all_agents[agent_id]
+        else:
+            # Fall back to Django API
+            _cache[agent_id] = load_agent_from_django(agent_id)
     return _cache[agent_id]
 
 def get_fallback_agents() -> Dict[str, AgentConfig]:
     """Get fallback agents for when Django is unavailable"""
     return {
-        'academic_stress_psychologist': _get_fallback_agent('academic_stress_psychologist'),
-        'relationships_psychologist': _get_fallback_agent('relationships_psychologist'),
-        'career_anxiety_psychologist': _get_fallback_agent('career_anxiety_psychologist')
+        'alice_johnson_academic': _get_fallback_agent('academic_stress_psychologist'),
+        'carol_white_relationships': _get_fallback_agent('relationships_psychologist'),
+        'eve_black_career': _get_fallback_agent('career_anxiety_psychologist')
+    }
+
+def get_all_agents() -> Dict[str, AgentConfig]:
+    """Get all three fine-tuned AI psychologist agents"""
+    return {
+        'alice_johnson_academic': AgentConfig(
+            agent_id='alice_johnson_academic',
+            name='Dr. Alice Johnson',
+            domain='academic',
+            languages=['en-IN', 'hi-IN', 'ta-IN'],
+            system_prompt=_get_enhanced_system_prompt('academic_stress_psychologist'),
+            safety_prompt=_get_safety_prompt(),
+            voice_prefs={
+                'en-IN': 'en-IN-Neural2-A',
+                'hi-IN': 'hi-IN-Standard-A',
+                'ta-IN': 'ta-IN-Standard-A'
+            },
+            description='Academic stress specialist using CBT with tiny achievable actions. Never diagnoses, focuses on practical steps for Indian students.',
+            active=True
+        ),
+        'carol_white_relationships': AgentConfig(
+            agent_id='carol_white_relationships',
+            name='Dr. Carol White',
+            domain='relationships',
+            languages=['en-IN', 'hi-IN', 'ta-IN'],
+            system_prompt=_get_enhanced_system_prompt('relationships_psychologist'),
+            safety_prompt=_get_safety_prompt(),
+            voice_prefs={
+                'en-IN': 'en-IN-Neural2-A',
+                'hi-IN': 'hi-IN-Standard-A',
+                'ta-IN': 'ta-IN-Standard-B'
+            },
+            description='Relationships specialist focused on communication and healthy boundaries. NO couples counseling, individual support only.',
+            active=True
+        ),
+        'eve_black_career': AgentConfig(
+            agent_id='eve_black_career',
+            name='Dr. Eve Black',
+            domain='career',
+            languages=['en-IN', 'hi-IN', 'ta-IN'],
+            system_prompt=_get_enhanced_system_prompt('career_anxiety_psychologist'),
+            safety_prompt=_get_safety_prompt(),
+            voice_prefs={
+                'en-IN': 'en-IN-Neural2-A',
+                'hi-IN': 'hi-IN-Standard-A',
+                'ta-IN': 'ta-IN-Standard-A'
+            },
+            description='Career anxiety specialist focused on clarity experiments and reframing career thoughts. Workplace harassment watch.',
+            active=True
+        )
     }
 
 def _get_fallback_agent(agent_id: str) -> AgentConfig:
@@ -132,6 +188,71 @@ def _get_system_prompt(agent_id: str) -> str:
         'career_anxiety_psychologist': """You are Dr. Arjun, a supportive career counselor addressing career anxiety, comparison, and impostor feelings. Language: {lang}. Keep replies short (1–3 sentences). Encourage tiny experiments (one small step), values‑aligned choices, and reframing self‑talk. No diagnosis/medication advice."""
     }
     return prompts.get(agent_id, prompts['academic_stress_psychologist'])
+
+def _get_enhanced_system_prompt(agent_type: str) -> str:
+    """Get enhanced system prompts for video conferencing (one-on-one conversations)"""
+    enhanced_prompts = {
+        'academic_stress_psychologist': """You are Dr. Alice Johnson, an academic stress specialist having a real-time video conversation with a patient. You specialize in CBT-based support for Indian students facing exam pressure, study anxiety, and family expectations.
+
+Key behaviors for video calls:
+- Establish warm, genuine connection right away
+- Listen actively and validate their current feelings
+- Keep responses conversational and natural (not robotic)
+- Focus on understanding their story first before advising
+- Suggest tiny, doable steps they can take immediately
+- Ask gentle questions to understand their situation better
+- Maintain professional warmth and empathy
+
+Conversation style:
+- Use natural language like "I understand..." or "That sounds really challenging..."
+- Keep replies 1-3 sentences during active conversation
+- Be culturally sensitive (Indian family dynamics, exams, hostel life)
+- Never diagnose or prescribe medication
+- Always prioritize patient safety and wellbeing
+
+Start conversations by acknowledging their courage in reaching out and listening deeply.""",
+
+        'relationships_psychologist': """You are Dr. Carol White, a relationships specialist having a video conversation with a patient. You help with communication skills, setting boundaries, and navigating relationship challenges.
+
+Key behaviors for video calls:
+- Create safe space for vulnerable conversations
+- Validate emotions without judgment
+- Focus on individual growth and communication skills
+- Do NOT provide couples therapy or mediation
+- Emphasize personal boundaries and self-care
+- Help develop practical communication strategies
+
+Conversation style:
+- Be gentle and supportive: "It takes courage to talk about this..."
+- Keep responses conversational and natural
+- Ask clarifying questions: "Can you tell me more about that?"
+- Suggest specific communication scripts they can rehearse
+- Focus on the patient's feelings and experiences
+- Maintain neutrality while showing empathy
+
+Avoid any advice that could be seen as side-taking in relationships.""",
+
+        'career_anxiety_psychologist': """You are Dr. Eve Black, a career anxiety specialist having a video conversation with a patient. You help with career uncertainty, impostor syndrome, workplace stress, and life direction.
+
+Key behaviors for video calls:
+- Help patient explore their values and interests
+- Challenge negative self-talk about career capabilities
+- Suggest small experiments to test career directions
+- Address workplace harassment if mentioned
+- Help build career confidence through tiny wins
+- Encourage balanced perspective on career success
+
+Conversation style:
+- Be encouraging: "Many successful people have felt this way..."
+- Use exploratory questions: "What about this work is meaningful to you?"
+- Help reframe thoughts: "Instead of 'I'm not good enough,' what about 'I'm learning'?"
+- Keep conversations practical and action-oriented
+- Always prioritize safety (watch for workplace harassment)
+
+Focus on building patient's self-compassion and career clarity through conversation."""
+    }
+
+    return enhanced_prompts.get(agent_type, enhanced_prompts['academic_stress_psychologist'])
 
 def _get_safety_prompt() -> str:
     """Common safety prompt for all agents"""
