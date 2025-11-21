@@ -512,6 +512,7 @@ The refreshed video-call flow mirrors the reference UI shared in the design brie
 ### Alternative Platform
 - **Backend & AI Service**: [Railway](https://railway.app) (Free tier: $5 credit, PostgreSQL included)
 
+<<<<<<< HEAD
 ### 📚 Complete Deployment Guides
 
 This project is **fully configured for production deployment on Render**. All necessary files are included:
@@ -560,6 +561,8 @@ This project is **fully configured for production deployment on Render**. All ne
 
 **📋 See [RENDER_DEPLOYMENT_GUIDE.md](RENDER_DEPLOYMENT_GUIDE.md) for detailed instructions.**
 
+=======
+>>>>>>> 21e89b24953d3d46a60983cdbd4f7515032d39ac
 ### Estimated Monthly Costs:
 - **Development/Testing**: $0-7/month (free database + free backend + starter AI service)
 - **Production**: $21/month (all starter tier services)
@@ -720,3 +723,16 @@ This platform is designed to complement, not replace, professional mental health
 This project was developed with guidance from mental health professionals and AI ethicists. Special thanks to our clinical advisors and technology partners who helped shape a responsible, accessible mental health solution.
 
 ---
+<<<<<<< HEAD
+=======
+
+## 📞 Contact
+
+- Archana Sengunthar — Email: [archanagurusamy648@gmail.com](mailto:archanagurusamy648@gmail.com)
+- • GitHub: [ARCHANA-SENGUNTHAR](https://github.com/ARCHANA-SENGUNTHAR)
+- Neha S — Email: [nehasasikumar06@gmail.com](mailto:nehasasikumar06@gmail.com)
+- • GitHub: [Deepikasel](https://github.com/Nehasasikumar)
+- Nishakar T — Email: [nishakarnishakar06@gmail.com](mailto:nishakarnishakar06@gmail.com)
+- • GitHub: [Nishakar](https://github.com/NISHAKAR06)
+---
+>>>>>>> 21e89b24953d3d46a60983cdbd4f7515032d39ac
