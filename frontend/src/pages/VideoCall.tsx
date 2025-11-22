@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from "react";
-import type { LucideIcon } from "lucide-react";
 import {
   Mic,
   MicOff,
@@ -8,7 +7,6 @@ import {
   Phone,
   Volume2,
   VolumeX,
-  Wifi,
 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
@@ -34,68 +32,26 @@ const formatDuration = (seconds: number) => {
   return `${mins}:${secs}`;
 };
 
-type IconCircleButtonVariant = "primary" | "muted" | "danger" | "ghost";
-
-interface IconCircleButtonProps {
-  icon: LucideIcon;
-  label: string;
-  onClick?: () => void;
-  active?: boolean;
-  disabled?: boolean;
-  variant?: IconCircleButtonVariant;
-  pulse?: boolean;
-}
-
-const IconCircleButton: React.FC<IconCircleButtonProps> = ({
-  icon: Icon,
-  label,
-  onClick,
-  active = true,
-  disabled,
-  variant = "primary",
-  pulse,
-}) => {
-  const variantStyles: Record<IconCircleButtonVariant, string> = {
-    primary:
-      "bg-white text-slate-900 shadow-[0_18px_35px_rgba(15,23,42,0.35)] hover:bg-slate-50",
-    muted: "bg-white/10 text-white/85 border border-white/20 hover:bg-white/20",
-    danger:
-      "bg-rose-600 text-white shadow-[0_25px_45px_rgba(244,63,94,0.55)] hover:bg-rose-500",
-    ghost: "bg-white/10 text-white hover:bg-white/20 border border-white/20",
-  };
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={`relative flex h-16 w-16 items-center justify-center rounded-full transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${
-        variantStyles[variant]
-      } ${!active ? "opacity-60" : ""} ${
-        disabled ? "cursor-not-allowed opacity-30" : ""
-      } ${pulse ? "animate-pulse" : ""}`}
-      aria-label={label}
-    >
-      <Icon className="h-6 w-6" />
-      <span className="sr-only">{label}</span>
-    </button>
-  );
-};
-
 const VideoCall: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { accessToken } = useAuth();
+  const { accessToken, user } = useAuth();
 
   const [session, setSession] = useState<SessionResponse | null>(null);
   const [wsConnected, setWsConnected] = useState<boolean>(false);
   const [recording, setRecording] = useState<boolean>(false);
   const [audioPlaying, setAudioPlaying] = useState<boolean>(false);
+  const [conversationActive, setConversationActive] = useState<boolean>(false);
   const [, setTranscripts] = useState<
     Array<{ role: "user" | "assistant"; text: string }>
   >([]);
   const [connectionStatus, setConnectionStatus] =
     useState<string>("Connecting...");
+
+  // AI Processing Flow States
+  const [isProcessingVoice, setIsProcessingVoice] = useState<boolean>(false);
+  const [isAiThinking, setIsAiThinking] = useState<boolean>(false);
+  const [processingStep, setProcessingStep] = useState<string>("");
 
   // Video and face analysis state
   const [videoEnabled, setVideoEnabled] = useState<boolean>(true);
@@ -115,23 +71,35 @@ const VideoCall: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const emotionIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Psychologist configuration
+  // Psychologist configuration with enhanced rendering models
   const getPsychologistConfig = (id: string) => {
     const configs = {
       eve_black_career: {
         name: "Dr. Eve Black",
-        modelUrl: "/ALICE.glb",
+        modelUrl: "/agent1.glb", // Enhanced rendering model
+        backgroundImage: "/agent1_background_img.jpg",
         specialty: "Career Anxiety Specialist",
+        scale: 3.5,
+        modelPosition: [0, -3.4, 0] as [number, number, number],
+        cameraPosition: [0, -6.6, 20] as [number, number, number],
       },
       carol_white_relationships: {
         name: "Dr. Carol White",
-        modelUrl: "/SARAH.glb",
+        modelUrl: "/agent2.glb", // Updated to agent2 3D model
+        backgroundImage: "/agent2_background_img.jpg",
         specialty: "Relationships Problems Specialist",
-      },
+        scale: 5.0,
+        modelPosition: [0, -3.4, 0] as [number, number, number],
+        cameraPosition: [0, -6.6, 20] as [number, number, number],
+      },  
       alice_johnson_academic: {
         name: "Dr. Alice Johnson",
-        modelUrl: "/BLACK.glb",
+        modelUrl: "/agent3.glb", // Enhanced rendering model
+        backgroundImage: "/agent3_background_img.jpg",
         specialty: "Academic Stress Specialist",
+        scale: 3.5,
+        modelPosition: [0, -3.4, 0] as [number, number, number],
+        cameraPosition: [0, -6.6, 20] as [number, number, number],
       },
     };
     return configs[id] || configs["eve_black_career"];
@@ -226,7 +194,7 @@ const VideoCall: React.FC = () => {
     }
   };
 
-  // Start video and emotion analysis
+  // Start video and emotion analysis with enhanced error handling
   const startVideoAndAnalysis = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -243,54 +211,77 @@ const VideoCall: React.FC = () => {
       }
 
       stopEmotionAnalysis();
-      emotionIntervalRef.current = setInterval(async () => {
-        if (
-          faceDetectionReady &&
-          analysisVideoRef.current &&
-          canvasRef.current
-        ) {
-          const detections = await faceapi
-            .detectAllFaces(
-              analysisVideoRef.current,
-              new faceapi.TinyFaceDetectorOptions()
-            )
-            .withFaceLandmarks()
-            .withFaceExpressions();
 
-          if (detections && detections.length > 0) {
-            const faceExpression = detections[0].expressions;
-            const emotionSnapshot = {
-              happy: faceExpression.happy || 0,
-              neutral: faceExpression.neutral || 0,
-              angry: faceExpression.angry || 0,
-              fearful: faceExpression.fearful || 0,
-              disgusted: faceExpression.disgusted || 0,
-              sad: faceExpression.sad || 0,
-              surprised: faceExpression.surprised || 0,
-              timestamp: new Date().toISOString(),
-              session_id: session?.session_id || null,
-            };
+      // Only start emotion analysis if face detection is ready
+      if (faceDetectionReady) {
+        console.log("🎭 Starting emotion analysis with rendering player...");
+        emotionIntervalRef.current = setInterval(async () => {
+          try {
+            if (
+              faceDetectionReady &&
+              analysisVideoRef.current &&
+              canvasRef.current
+            ) {
+              const detections = await faceapi
+                .detectAllFaces(
+                  analysisVideoRef.current,
+                  new faceapi.TinyFaceDetectorOptions()
+                )
+                .withFaceLandmarks()
+                .withFaceExpressions();
 
-            setEmotionData(emotionSnapshot);
-            // Send to backend for analysis
-            sendEmotionData(emotionSnapshot);
+              if (detections && detections.length > 0) {
+                const faceExpression = detections[0].expressions;
+                const emotionSnapshot = {
+                  happy: faceExpression.happy || 0,
+                  neutral: faceExpression.neutral || 0,
+                  angry: faceExpression.angry || 0,
+                  fearful: faceExpression.fearful || 0,
+                  disgusted: faceExpression.disgusted || 0,
+                  sad: faceExpression.sad || 0,
+                  surprised: faceExpression.surprised || 0,
+                  timestamp: new Date().toISOString(),
+                  session_id: session?.session_id || null,
+                };
+
+                setEmotionData(emotionSnapshot);
+                // Send to backend for analysis (with error handling)
+                await sendEmotionData(emotionSnapshot);
+              }
+            }
+          } catch (emotionError) {
+            console.warn(
+              "⚠️ Emotion analysis error (non-critical):",
+              emotionError
+            );
+            // Don't break the interval, just log the error
           }
-        }
-      }, 2000);
+        }, 2000);
+      } else {
+        console.log(
+          "⚠️ Face detection not available, skipping emotion analysis"
+        );
+      }
     } catch (error) {
-      console.error("Error starting video:", error);
+      console.error("❌ Error starting video:", error);
       setVideoEnabled(false);
+      // Ensure emotion monitoring doesn't cause issues
+      stopEmotionAnalysis();
     }
   };
 
-  // Send emotion data to backend
+  // Send emotion data to backend with enhanced error handling
   const sendEmotionData = async (emotionData: any) => {
-    if (!session?.session_id) return;
+    if (!session?.session_id) {
+      console.warn("No session ID available for emotion data");
+      return;
+    }
 
     try {
       const apiBaseUrl =
         import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
-      await fetch(`${apiBaseUrl}/api/emotions/`, {
+
+      const response = await fetch(`${apiBaseUrl}/api/emotions/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -302,8 +293,16 @@ const VideoCall: React.FC = () => {
           user_id: 1, // Would typically get from auth context
         }),
       });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      console.log("✅ Emotion data sent successfully");
     } catch (error) {
-      console.error("Error sending emotion data:", error);
+      console.error("❌ Error sending emotion data:", error);
+      // Don't throw error to avoid breaking the UI
+      // Emotion monitoring is optional feature
     }
   };
 
@@ -360,12 +359,13 @@ const VideoCall: React.FC = () => {
       setWsConnected(true);
       setConnectionStatus(`Connected to ${psychologistConfig.name}`);
 
-      // Send initial authentication message with token
+      // Send initial authentication message - FastAPI will handle agent selection
       ws.send(
         JSON.stringify({
           token: sessionData.ws_token,
-          agent_id: psychologistId,
           lang: selectedLanguage,
+          // Optionally suggest an agent, FastAPI will choose default if not provided
+          preferred_agent: psychologistId,
         })
       );
     };
@@ -376,18 +376,53 @@ const VideoCall: React.FC = () => {
       switch (message.type) {
         case "connection_established":
           setConnectionStatus(`Connected to ${psychologistConfig.name}`);
+          setConversationActive(true);
           break;
         case "final_transcript":
+          setIsProcessingVoice(false);
+          setIsAiThinking(true);
+          setProcessingStep("AI is thinking...");
           addTranscript("user", message.data.text);
           break;
         case "ai_text":
+          setIsAiThinking(false);
+          setProcessingStep("Generating voice response...");
           addTranscript("assistant", message.data.text);
           break;
         case "ai_audio_chunk":
           setAudioPlaying(true);
+          setProcessingStep("");
+          // Play the audio chunk
+          if (message.data.audio_base64 && !speakerMuted) {
+            try {
+              const audioData = atob(message.data.audio_base64);
+              const audioArray = new Uint8Array(audioData.length);
+              for (let i = 0; i < audioData.length; i++) {
+                audioArray[i] = audioData.charCodeAt(i);
+              }
+
+              const audioBlob = new Blob([audioArray], { type: "audio/mp3" });
+              const audioUrl = URL.createObjectURL(audioBlob);
+              const audio = new Audio(audioUrl);
+
+              audio.play().catch((e) => console.log("Audio play error:", e));
+
+              // Clean up URL after playing
+              audio.addEventListener("ended", () => {
+                URL.revokeObjectURL(audioUrl);
+              });
+            } catch (error) {
+              console.log("Audio playback error:", error);
+            }
+          }
           break;
         case "tts_complete":
           setAudioPlaying(false);
+          setProcessingStep("");
+          // AI finished speaking, now patient can speak
+          if (conversationActive && wsConnected) {
+            console.log("🎤 AI finished speaking - patient can now speak");
+          }
           break;
       }
     };
@@ -444,6 +479,13 @@ const VideoCall: React.FC = () => {
   };
 
   const toggleRecording = () => {
+    if (!conversationActive || audioPlaying) {
+      console.log(
+        "🚫 Cannot record: conversation not active or AI is speaking"
+      );
+      return;
+    }
+
     if (recording) {
       stopRecording();
     } else {
@@ -452,6 +494,10 @@ const VideoCall: React.FC = () => {
   };
 
   const sendAudioData = (chunks: Blob[]) => {
+    // Start voice processing indication
+    setIsProcessingVoice(true);
+    setProcessingStep("Processing your voice...");
+
     const audioBlob = new Blob(chunks, { type: "audio/webm;codecs=opus" });
     const reader = new FileReader();
 
@@ -502,131 +548,167 @@ const VideoCall: React.FC = () => {
     navigate("/dashboard/session-summarizer");
   };
 
-  const ControlButton: React.FC<
-    IconCircleButtonProps & { caption?: string }
-  > = (props) => (
-    <div className="flex flex-col items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.35em] text-white/70">
-      <IconCircleButton {...props} />
-      <span>{props.caption || props.label}</span>
-    </div>
-  );
-
   return (
-    <div className="relative flex min-h-screen w-full justify-center bg-[#cfd5df] px-4 py-6">
-      <div className="relative w-full max-w-[1380px] overflow-hidden rounded-[48px] bg-gradient-to-br from-[#f1dad7] via-[#d9cfd0] to-[#becedd] shadow-[0_35px_90px_rgba(15,23,42,0.35)]">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.6),transparent),radial-gradient(circle_at_70%_60%,rgba(255,255,255,0.35),transparent)]" />
+    <div className="relative flex min-h-screen w-full bg-gray-900">
+      {/* Main Video Area - Full Screen */}
+      <div className="relative flex-1 flex flex-col">
+        {/* Header Bar */}
+        <div className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between p-6 bg-gradient-to-b from-black/50 to-transparent">
+          <div className="text-white">
+            <h2 className="text-lg font-medium">{psychologistConfig.name}</h2>
+            <p className="text-sm text-gray-300">
+              {psychologistConfig.specialty}
+            </p>
+          </div>
+          <div className="flex items-center gap-3 text-white">
+            <span
+              className={`h-2 w-2 rounded-full ${
+                wsConnected ? "bg-green-500" : "bg-red-500 animate-pulse"
+              }`}
+            />
+            <span className="text-sm">{formatDuration(elapsedSeconds)}</span>
+          </div>
+        </div>
 
-        <div className="relative z-10 flex min-h-[760px] flex-col px-8 py-10 md:px-14 lg:px-20">
-          <header className="flex flex-wrap items-start justify-between gap-6 text-slate-900">
-            <div>
-              <p className="text-xs uppercase tracking-[0.6em] text-slate-600">
-                Live Session
-              </p>
-              <p className="text-3xl font-semibold leading-tight text-slate-900">
-                {psychologistConfig.name}
-              </p>
-              <p className="text-sm text-slate-600">
-                {psychologistConfig.specialty}
-              </p>
-            </div>
-            <div className="flex flex-col items-end gap-3 rounded-3xl bg-white/70 px-5 py-4 text-slate-900 shadow-[0_25px_60px_rgba(15,23,42,0.2)]">
-              <div className="flex items-center gap-3 text-base font-semibold">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-900 text-white shadow-lg">
-                  <Wifi className="h-4 w-4" />
-                </span>
-                <span>{formatDuration(elapsedSeconds)}</span>
-              </div>
-              <p className="flex items-center gap-2 text-xs font-semibold tracking-[0.35em] text-slate-600">
-                <span
-                  className={`h-2 w-2 rounded-full ${
-                    wsConnected
-                      ? "bg-emerald-500"
-                      : "bg-amber-500 animate-pulse"
-                  }`}
-                />
-                {connectionStatus}
-              </p>
-            </div>
-          </header>
-
-          <div className="relative mt-10 flex flex-1 items-center justify-center">
-            <div className="absolute inset-x-16 top-6 h-48 rounded-full bg-white/35 blur-3xl" />
-            <div className="relative w-full max-w-[580px]">
-              <div className="absolute inset-0 -z-10 scale-105 rounded-[64px] bg-white/40 blur-[90px]" />
-              <div className="relative aspect-[3/4] w-full min-h-[520px] overflow-hidden rounded-[64px] border border-white/35 bg-white/85 shadow-[0_45px_95px_rgba(15,23,42,0.35)]">
-                <ThreeDModelViewer
-                  modelUrl={psychologistConfig.modelUrl}
-                  scale={1.6}
-                  modelPosition={[0, -0.6, 0]}
-                  cameraPosition={[0, 0, 2.3]}
-                  backgroundColor="#f5e2dc"
-                  showControls={false}
-                  voicePlaying={audioPlaying}
-                  showSessionBanner={false}
-                />
-              </div>
-
-              {videoEnabled && (
-                <div className="absolute left-6 bottom-0 hidden w-44 overflow-hidden rounded-[28px] border border-white/50 bg-black/55 shadow-xl backdrop-blur-sm md:block">
-                  <video
-                    ref={previewVideoRef}
-                    autoPlay
-                    muted
-                    playsInline
-                    className="aspect-[4/3] w-full object-cover"
-                    style={{ transform: "scaleX(-1)" }}
-                  />
-                  <div className="flex items-center justify-between px-3 py-2 text-[11px] text-white/85">
-                    <span className="font-semibold tracking-wide">YOU</span>
-                    <span className="flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-[10px]">
-                      <span className="h-2 w-2 rounded-full bg-rose-400 animate-pulse" />
-                      Live
-                    </span>
-                  </div>
+        {/* AI Processing Flow Indicators */}
+        {(isProcessingVoice || isAiThinking || processingStep) && (
+          <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-20 flex items-center gap-3 rounded-full bg-black/70 px-6 py-3 text-white shadow-lg backdrop-blur-md">
+            {isProcessingVoice && (
+              <>
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/20">
+                  <div className="h-4 w-4 animate-pulse rounded-full bg-blue-400" />
                 </div>
-              )}
+                <span className="text-sm font-medium">Processing voice...</span>
+              </>
+            )}
+
+            {isAiThinking && (
+              <>
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-500/20">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-purple-400 border-t-transparent" />
+                </div>
+                <span className="text-sm font-medium">AI is thinking...</span>
+              </>
+            )}
+
+            {processingStep && !isProcessingVoice && !isAiThinking && (
+              <>
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-500/20">
+                  <div className="h-4 w-4 animate-pulse rounded-full bg-green-400" />
+                </div>
+                <span className="text-sm font-medium">{processingStep}</span>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Main Speaker View - Full Screen */}
+        <div className="relative w-full h-full">
+          <ThreeDModelViewer
+            modelUrl={psychologistConfig.modelUrl}
+            scale={psychologistConfig.scale}
+            modelPosition={psychologistConfig.modelPosition}
+            cameraPosition={psychologistConfig.cameraPosition}
+            backgroundColor={
+              psychologistConfig.backgroundImage ? undefined : "#f5e2dc"
+            }
+            backgroundImage={psychologistConfig.backgroundImage}
+            showControls={false}
+            voicePlaying={audioPlaying}
+            showSessionBanner={false}
+            isProcessingVoice={isProcessingVoice}
+            isAiThinking={isAiThinking}
+          />
+
+          {/* Speaker Name Label */}
+          <div className="absolute bottom-6 left-6">
+            <div className="bg-black/70 backdrop-blur-sm rounded-lg px-4 py-2">
+              <span className="text-white font-medium">
+                {psychologistConfig.name}
+              </span>
             </div>
           </div>
+        </div>
 
-          <footer className="mt-12 flex w-full justify-center">
-            <div className="flex flex-wrap items-center justify-center gap-8 rounded-full bg-[#0c1526]/90 px-10 py-5 text-white shadow-[0_30px_80px_rgba(12,21,38,0.55)] backdrop-blur-xl">
-              <ControlButton
-                icon={speakerMuted ? VolumeX : Volume2}
-                label="Speaker"
-                caption="Speaker"
-                onClick={() => setSpeakerMuted((prev) => !prev)}
-                active={!speakerMuted}
-                variant="muted"
+        {/* Picture-in-Picture for User Video */}
+        {videoEnabled && (
+          <div className="absolute bottom-24 right-6 z-20">
+            <div className="relative w-48 h-36 overflow-hidden rounded-xl border-2 border-white/30 bg-black shadow-2xl">
+              <video
+                ref={previewVideoRef}
+                autoPlay
+                muted
+                playsInline
+                className="w-full h-full object-cover"
+                style={{ transform: "scaleX(-1)" }}
               />
-              <span className="hidden h-10 w-px bg-white/20 sm:block" />
-              <ControlButton
-                icon={recording ? Mic : MicOff}
-                label="Microphone"
-                caption="Mic"
-                onClick={toggleRecording}
-                active={recording}
-                disabled={!wsConnected}
-                variant="muted"
-              />
-              <span className="hidden h-10 w-px bg-white/20 sm:block" />
-              <ControlButton
-                icon={videoEnabled ? VideoOff : Video}
-                label="Camera"
-                caption="Camera"
-                onClick={toggleVideo}
-                active={videoEnabled}
-                variant="primary"
-              />
-              <span className="hidden h-10 w-px bg-white/20 sm:block" />
-              <ControlButton
-                icon={Phone}
-                label="End Call"
-                caption="End"
-                onClick={handleEndCall}
-                variant="danger"
-              />
+              <div className="absolute bottom-2 right-2 bg-black/70 rounded px-2 py-1">
+                <span className="text-white text-xs font-medium">
+                  {user?.name || "You"} (you)
+                </span>
+              </div>
             </div>
-          </footer>
+          </div>
+        )}
+
+        {/* Control Bar at Bottom */}
+        <div className="absolute bottom-0 left-0 right-0 z-30 flex items-center justify-center p-6 bg-gradient-to-t from-black/50 to-transparent">
+          <div className="flex items-center gap-4 rounded-full bg-black/70 backdrop-blur-xl px-8 py-4">
+            <button
+              onClick={() => setSpeakerMuted((prev) => !prev)}
+              className={`flex h-12 w-12 items-center justify-center rounded-full transition-all ${
+                speakerMuted
+                  ? "bg-red-500 hover:bg-red-600"
+                  : "bg-gray-600 hover:bg-gray-700"
+              }`}
+            >
+              {speakerMuted ? (
+                <VolumeX className="h-5 w-5 text-white" />
+              ) : (
+                <Volume2 className="h-5 w-5 text-white" />
+              )}
+            </button>
+
+            <button
+              onClick={toggleRecording}
+              disabled={!wsConnected}
+              className={`flex h-12 w-12 items-center justify-center rounded-full transition-all ${
+                recording
+                  ? "bg-red-500 hover:bg-red-600"
+                  : "bg-gray-600 hover:bg-gray-700 disabled:opacity-50"
+              }`}
+            >
+              {recording ? (
+                <Mic className="h-5 w-5 text-white" />
+              ) : (
+                <MicOff className="h-5 w-5 text-white" />
+              )}
+            </button>
+
+            <button
+              onClick={toggleVideo}
+              className={`flex h-12 w-12 items-center justify-center rounded-full transition-all ${
+                videoEnabled
+                  ? "bg-gray-600 hover:bg-gray-700"
+                  : "bg-red-500 hover:bg-red-600"
+              }`}
+            >
+              {videoEnabled ? (
+                <Video className="h-5 w-5 text-white" />
+              ) : (
+                <VideoOff className="h-5 w-5 text-white" />
+              )}
+            </button>
+
+            <div className="w-px h-8 bg-gray-500 mx-2" />
+
+            <button
+              onClick={handleEndCall}
+              className="flex h-12 w-12 items-center justify-center rounded-full bg-red-500 hover:bg-red-600 transition-all"
+            >
+              <Phone className="h-5 w-5 text-white" />
+            </button>
+          </div>
         </div>
       </div>
 

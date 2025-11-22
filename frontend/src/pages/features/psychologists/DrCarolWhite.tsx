@@ -1,14 +1,35 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
-import { Button } from '../../../components/ui/button';
-import { Badge } from '../../../components/ui/badge';
-import { Alert, AlertDescription } from '../../../components/ui/alert';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
-import { Checkbox } from '../../../components/ui/checkbox';
-import { Mic, MicOff, StopCircle, Volume2, VolumeX, AlertTriangle, Heart, ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { ThreeDModelViewer } from '../../../components/ui/ThreeDModelViewer';
-import { useLanguage } from '../../../contexts/LanguageContext';
+import React, { useState, useRef, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../../../components/ui/card";
+import { Button } from "../../../components/ui/button";
+import { Badge } from "../../../components/ui/badge";
+import { Alert, AlertDescription } from "../../../components/ui/alert";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../../components/ui/select";
+import { Checkbox } from "../../../components/ui/checkbox";
+import {
+  Mic,
+  MicOff,
+  StopCircle,
+  Volume2,
+  VolumeX,
+  AlertTriangle,
+  Heart,
+  ArrowLeft,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { ThreeDModelViewer } from "../../../components/ui/ThreeDModelViewer";
+import { useLanguage } from "../../../contexts/LanguageContext";
 
 interface SessionResponse {
   session_id: string;
@@ -24,75 +45,86 @@ interface SessionResponse {
 const DrCarolWhite: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const [selectedLanguage, setSelectedLanguage] = useState<string>('en-IN');
+  const [selectedLanguage, setSelectedLanguage] = useState<string>("en-IN");
   const [consentGiven, setConsentGiven] = useState<boolean>(false);
   const [session, setSession] = useState<SessionResponse | null>(null);
   const [wsConnected, setWsConnected] = useState<boolean>(false);
   const [recording, setRecording] = useState<boolean>(false);
   const [audioPlaying, setAudioPlaying] = useState<boolean>(false);
-  const [transcripts, setTranscripts] = useState<Array<{role: 'user'|'assistant', text: string}>>([]);
-  const [connectionStatus, setConnectionStatus] = useState<string>('');
-  const [safetyAlert, setSafetyAlert] = useState<string>('');
+  const [transcripts, setTranscripts] = useState<
+    Array<{ role: "user" | "assistant"; text: string }>
+  >([]);
+  const [connectionStatus, setConnectionStatus] = useState<string>("");
+  const [safetyAlert, setSafetyAlert] = useState<string>("");
 
   const wsRef = useRef<WebSocket | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
   const languages = [
-    { code: 'en-IN', name: 'English (India)' },
-    { code: 'hi-IN', name: 'हिंदी (Hindi)' },
-    { code: 'ta-IN', name: 'தமிழ் (Tamil)' }
+    { code: "en-IN", name: "English (India)" },
+    { code: "hi-IN", name: "हिंदी (Hindi)" },
+    { code: "ta-IN", name: "தமிழ் (Tamil)" },
   ];
 
   const startSession = async () => {
     // Redirect to video call page with psychologist and language parameters
-    navigate(`/video-call?psychologist=carol_white_relationships&lang=${selectedLanguage}&consent=${consentGiven}`);
+    navigate(
+      `/video-call?psychologist=carol_white_relationships&lang=${selectedLanguage}&consent=${consentGiven}`
+    );
   };
 
   const connectWebSocket = () => {
     if (!session?.ws_url) return;
 
-    setConnectionStatus('Connecting to AI service...');
+    setConnectionStatus("Connecting to AI service...");
     const ws = new WebSocket(session.ws_url);
 
     ws.onopen = () => {
       setWsConnected(true);
-      setConnectionStatus('Connected to AI service');
+      setConnectionStatus("Connected to AI service");
 
-      ws.send(JSON.stringify({
-        type: 'init',
-        token: session.ws_token
-      }));
+      ws.send(
+        JSON.stringify({
+          type: "init",
+          token: session.ws_token,
+        })
+      );
     };
 
     ws.onmessage = (event) => {
       const message = JSON.parse(event.data);
 
       switch (message.type) {
-        case 'connection_established':
+        case "connection_established":
           setConnectionStatus(`Connected to Dr. Carol White`);
           break;
 
-        case 'final_transcript':
-          addTranscript('user', message.data.text);
+        case "final_transcript":
+          addTranscript("user", message.data.text);
           break;
 
-        case 'ai_text':
-          addTranscript('assistant', message.data.text);
-          if (message.data.text.includes('helpline') || message.data.text.includes('crisis')) {
-            setSafetyAlert('Safety alert: Please consider reaching out to professional help.');
+        case "ai_text":
+          addTranscript("assistant", message.data.text);
+          if (
+            message.data.text.includes("helpline") ||
+            message.data.text.includes("crisis")
+          ) {
+            setSafetyAlert(
+              "Safety alert: Please consider reaching out to professional help."
+            );
           }
           break;
 
-        case 'ai_audio_chunk':
+        case "ai_audio_chunk":
           setAudioPlaying(true);
           break;
 
-        case 'tts_complete':
+        case "tts_complete":
           setAudioPlaying(false);
           break;
 
-        case 'error':
+        case "error":
           alert(`Error: ${message.message}`);
           break;
       }
@@ -100,19 +132,19 @@ const DrCarolWhite: React.FC = () => {
 
     ws.onclose = () => {
       setWsConnected(false);
-      setConnectionStatus('Disconnected from AI service');
+      setConnectionStatus("Disconnected from AI service");
     };
 
     ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      setConnectionStatus('Connection error');
+      console.error("WebSocket error:", error);
+      setConnectionStatus("Connection error");
     };
 
     wsRef.current = ws;
   };
 
-  const addTranscript = (role: 'user'|'assistant', text: string) => {
-    setTranscripts(prev => [...prev, { role, text }]);
+  const addTranscript = (role: "user" | "assistant", text: string) => {
+    setTranscripts((prev) => [...prev, { role, text }]);
   };
 
   const startRecording = async () => {
@@ -127,7 +159,7 @@ const DrCarolWhite: React.FC = () => {
       };
 
       mediaRecorder.onstop = () => {
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach((track) => track.stop());
         if (audioChunksRef.current.length > 0) {
           sendAudioData(audioChunksRef.current);
           audioChunksRef.current = [];
@@ -137,10 +169,9 @@ const DrCarolWhite: React.FC = () => {
       mediaRecorder.start();
       setRecording(true);
       mediaRecorderRef.current = mediaRecorder;
-
     } catch (error) {
-      console.error('Recording error:', error);
-      alert('Failed to access microphone');
+      console.error("Recording error:", error);
+      alert("Failed to access microphone");
     }
   };
 
@@ -152,21 +183,25 @@ const DrCarolWhite: React.FC = () => {
   };
 
   const sendAudioData = (chunks: Blob[]) => {
-    const audioBlob = new Blob(chunks, { type: 'audio/webm;codecs=opus' });
+    const audioBlob = new Blob(chunks, { type: "audio/webm;codecs=opus" });
     const reader = new FileReader();
 
     reader.onload = () => {
-      const base64Audio = (reader.result as string).split(',')[1];
+      const base64Audio = (reader.result as string).split(",")[1];
 
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({
-          type: 'audio_chunk',
-          audio_data: base64Audio
-        }));
+        wsRef.current.send(
+          JSON.stringify({
+            type: "audio_chunk",
+            audio_data: base64Audio,
+          })
+        );
 
-        wsRef.current.send(JSON.stringify({
-          type: 'user_utterance_end'
-        }));
+        wsRef.current.send(
+          JSON.stringify({
+            type: "user_utterance_end",
+          })
+        );
       }
     };
     reader.readAsDataURL(audioBlob);
@@ -174,16 +209,17 @@ const DrCarolWhite: React.FC = () => {
 
   const endSession = async () => {
     try {
-      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const apiBaseUrl =
+        import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
       await fetch(`${apiBaseUrl}/api/sessions/end/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          session_id: session?.session_id
-        })
+          session_id: session?.session_id,
+        }),
       });
     } catch (error) {
-      console.error('Session end error:', error);
+      console.error("Session end error:", error);
     }
 
     if (wsRef.current) {
@@ -193,23 +229,25 @@ const DrCarolWhite: React.FC = () => {
     setSession(null);
     setWsConnected(false);
     setTranscripts([]);
-    setConnectionStatus('');
-    setSafetyAlert('');
+    setConnectionStatus("");
+    setSafetyAlert("");
   };
 
   const handleBargeIn = () => {
     if (wsRef.current && wsConnected) {
-      wsRef.current.send(JSON.stringify({
-        type: 'barge_in'
-      }));
+      wsRef.current.send(
+        JSON.stringify({
+          type: "barge_in",
+        })
+      );
     }
   };
 
   // Configuration for 3D models
   const psychologistConfig = {
-    name: 'Dr. Carol White',
-    modelUrl: '/SARAH.glb', // Map to available 3D model
-    specialty: 'Relationships Problems Specialist'
+    name: "Dr. Carol White",
+    modelUrl: "/model.glb", // Map to available 3D model
+    specialty: "Relationships Problems Specialist",
   };
 
   return (
@@ -218,17 +256,21 @@ const DrCarolWhite: React.FC = () => {
         <header className="text-center">
           <Button
             variant="ghost"
-            onClick={() => navigate('/dashboard/video-conferencing')}
+            onClick={() => navigate("/dashboard/video-conferencing")}
             className="absolute top-4 left-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Video Conferencing
           </Button>
 
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">{t('psychologist_pages.carol_white.title')}</h1>
-          <p className="text-xl text-gray-600">{t('psychologist_pages.carol_white.subtitle')}</p>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+            {t("psychologist_pages.carol_white.title")}
+          </h1>
+          <p className="text-xl text-gray-600">
+            {t("psychologist_pages.carol_white.subtitle")}
+          </p>
           <p className="text-sm text-gray-500 mt-2">
-            {t('psychologist_pages.carol_white.description')}
+            {t("psychologist_pages.carol_white.description")}
           </p>
         </header>
 
@@ -236,20 +278,27 @@ const DrCarolWhite: React.FC = () => {
         {!session && !wsConnected && (
           <Card>
             <CardHeader>
-              <CardTitle>{t('psychologist_pages.carol_white.session_title')}</CardTitle>
+              <CardTitle>
+                {t("psychologist_pages.carol_white.session_title")}
+              </CardTitle>
               <CardDescription>
-                {t('psychologist_pages.carol_white.session_description')}
+                {t("psychologist_pages.carol_white.session_description")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Preferred Language</label>
-                <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
+                <label className="text-sm font-medium">
+                  Preferred Language
+                </label>
+                <Select
+                  value={selectedLanguage}
+                  onValueChange={setSelectedLanguage}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {languages.map(lang => (
+                    {languages.map((lang) => (
                       <SelectItem key={lang.code} value={lang.code}>
                         {lang.name}
                       </SelectItem>
@@ -262,15 +311,17 @@ const DrCarolWhite: React.FC = () => {
                 <Checkbox
                   id="consent"
                   checked={consentGiven}
-                  onCheckedChange={(checked) => setConsentGiven(checked as boolean)}
+                  onCheckedChange={(checked) =>
+                    setConsentGiven(checked as boolean)
+                  }
                 />
                 <label htmlFor="consent" className="text-sm">
-                  {t('psychologist_pages.carol_white.consent_label')}
+                  {t("psychologist_pages.carol_white.consent_label")}
                 </label>
               </div>
 
               <Button onClick={startSession} className="w-full" size="lg">
-                {t('psychologist_pages.carol_white.start_button')}
+                {t("psychologist_pages.carol_white.start_button")}
               </Button>
             </CardContent>
           </Card>
@@ -286,9 +337,10 @@ const DrCarolWhite: React.FC = () => {
                   Session with Dr. Carol White
                 </CardTitle>
                 <CardDescription>
-                  Relationships Support | Language: {selectedLanguage} | Status: {' '}
-                  <Badge variant={wsConnected ? 'default' : 'secondary'}>
-                    {connectionStatus || (wsConnected ? 'Connected' : 'Connecting...')}
+                  Relationships Support | Language: {selectedLanguage} | Status:{" "}
+                  <Badge variant={wsConnected ? "default" : "secondary"}>
+                    {connectionStatus ||
+                      (wsConnected ? "Connected" : "Connecting...")}
                   </Badge>
                 </CardDescription>
               </CardHeader>
@@ -301,7 +353,7 @@ const DrCarolWhite: React.FC = () => {
                   <div className="flex gap-2">
                     <Button
                       onClick={recording ? stopRecording : startRecording}
-                      variant={recording ? 'destructive' : 'default'}
+                      variant={recording ? "destructive" : "default"}
                       className="flex-1"
                     >
                       {recording ? (
@@ -332,7 +384,9 @@ const DrCarolWhite: React.FC = () => {
                       <VolumeX className="w-4 h-4 text-gray-400" />
                     )}
                     <span className="text-sm">
-                      {audioPlaying ? 'Dr. Carol White is speaking...' : 'Waiting for your response'}
+                      {audioPlaying
+                        ? "Dr. Carol White is speaking..."
+                        : "Waiting for your response"}
                     </span>
                   </div>
 
@@ -360,7 +414,8 @@ const DrCarolWhite: React.FC = () => {
                   <CardHeader>
                     <CardTitle className="text-lg">3D Session View</CardTitle>
                     <CardDescription>
-                      Interact with Dr. Carol White's 3D avatar during your conversation
+                      Interact with Dr. Carol White's 3D avatar during your
+                      conversation
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -378,29 +433,38 @@ const DrCarolWhite: React.FC = () => {
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>Your Conversation with Dr. Carol White</CardTitle>
+                    <CardTitle>
+                      Your Conversation with Dr. Carol White
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3 max-h-96 overflow-y-auto">
                       {transcripts.length === 0 ? (
                         <p className="text-gray-500 text-center py-8">
-                          Start speaking to begin your conversation with Dr. Carol White...
+                          Start speaking to begin your conversation with Dr.
+                          Carol White...
                         </p>
                       ) : (
                         transcripts.map((transcript, index) => (
                           <div
                             key={index}
-                            className={`flex ${transcript.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                            className={`flex ${
+                              transcript.role === "user"
+                                ? "justify-end"
+                                : "justify-start"
+                            }`}
                           >
                             <div
                               className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                                transcript.role === 'user'
-                                  ? 'bg-pink-600 text-white'
-                                  : 'bg-rose-100 text-rose-800 border border-rose-300'
+                                transcript.role === "user"
+                                  ? "bg-pink-600 text-white"
+                                  : "bg-rose-100 text-rose-800 border border-rose-300"
                               }`}
                             >
                               <p className="text-sm font-medium mb-1">
-                                {transcript.role === 'assistant' ? 'Dr. Carol White:' : 'You:'}
+                                {transcript.role === "assistant"
+                                  ? "Dr. Carol White:"
+                                  : "You:"}
                               </p>
                               <p className="text-sm">{transcript.text}</p>
                             </div>
@@ -423,23 +487,30 @@ const DrCarolWhite: React.FC = () => {
                   <div className="space-y-3 max-h-96 overflow-y-auto">
                     {transcripts.length === 0 ? (
                       <p className="text-gray-500 text-center py-8">
-                        Start speaking to begin your conversation with Dr. Carol White...
+                        Start speaking to begin your conversation with Dr. Carol
+                        White...
                       </p>
                     ) : (
                       transcripts.map((transcript, index) => (
                         <div
                           key={index}
-                          className={`flex ${transcript.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                          className={`flex ${
+                            transcript.role === "user"
+                              ? "justify-end"
+                              : "justify-start"
+                          }`}
                         >
                           <div
                             className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                              transcript.role === 'user'
-                                ? 'bg-pink-600 text-white'
-                                : 'bg-rose-100 text-rose-800 border border-rose-300'
+                              transcript.role === "user"
+                                ? "bg-pink-600 text-white"
+                                : "bg-rose-100 text-rose-800 border border-rose-300"
                             }`}
                           >
                             <p className="text-sm font-medium mb-1">
-                              {transcript.role === 'assistant' ? 'Dr. Carol White:' : 'You:'}
+                              {transcript.role === "assistant"
+                                ? "Dr. Carol White:"
+                                : "You:"}
                             </p>
                             <p className="text-sm">{transcript.text}</p>
                           </div>

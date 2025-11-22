@@ -1,8 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Mic, MicOff, Video, VideoOff, Phone } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ThreeDModelViewer } from '../components/ui/ThreeDModelViewer';
+import React, { useState, useRef, useEffect } from "react";
+import { Mic, MicOff, Video, VideoOff, Phone } from "lucide-react";
+import { Button } from "../components/ui/button";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { ThreeDModelViewer } from "../components/ui/ThreeDModelViewer";
 
 interface SessionResponse {
   session_id: string;
@@ -23,12 +23,15 @@ const VideoCallSimple: React.FC = () => {
   const [wsConnected, setWsConnected] = useState<boolean>(false);
   const [recording, setRecording] = useState<boolean>(false);
   const [audioPlaying, setAudioPlaying] = useState<boolean>(false);
-  const [transcripts, setTranscripts] = useState<Array<{role: 'user'|'assistant', text: string}>>([]);
-  const [connectionStatus, setConnectionStatus] = useState<string>('Connecting...');
+  const [transcripts, setTranscripts] = useState<
+    Array<{ role: "user" | "assistant"; text: string }>
+  >([]);
+  const [connectionStatus, setConnectionStatus] =
+    useState<string>("Connecting...");
   const [videoEnabled, setVideoEnabled] = useState<boolean>(false);
 
-  const psychologistId = searchParams.get('psychologist') || 'eve_black_career';
-  const selectedLanguage = searchParams.get('lang') || 'en-IN';
+  const psychologistId = searchParams.get("psychologist") || "eve_black_career";
+  const selectedLanguage = searchParams.get("lang") || "en-IN";
 
   const wsRef = useRef<WebSocket | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -38,18 +41,18 @@ const VideoCallSimple: React.FC = () => {
   // Psychologist configuration
   const getPsychologistConfig = (id: string) => {
     const configs = {
-      'eve_black_career': {
-        name: 'Dr. Eve Black',
-        modelUrl: '/ALICE.glb',
-        specialty: 'Career Anxiety Specialist'
+      eve_black_career: {
+        name: "Dr. Eve Black",
+        modelUrl: "/girl.glb",
+        specialty: "Career Anxiety Specialist",
       },
-      'carol_white_relationships': {
-        name: 'Dr. Carol White',
-        modelUrl: '/SARAH.glb',
-        specialty: 'Relationships Problems Specialist'
-      }
+      carol_white_relationships: {
+        name: "Dr. Carol White",
+        modelUrl: "/model.glb",
+        specialty: "Relationships Problems Specialist",
+      },
     };
-    return configs[id] || configs['eve_black_career'];
+    return configs[id] || configs["eve_black_career"];
   };
 
   const psychologistConfig = getPsychologistConfig(psychologistId);
@@ -65,34 +68,33 @@ const VideoCallSimple: React.FC = () => {
 
   const startSession = async () => {
     try {
-      console.log('Starting video call session...');
-      setConnectionStatus('Starting session...');
+      console.log("Starting video call session...");
+      setConnectionStatus("Starting session...");
 
       // Simulate session start for now (since Django backend is not running)
       setTimeout(() => {
         const mockSession: SessionResponse = {
           session_id: `session_${Date.now()}`,
-          ws_url: 'ws://localhost:8001/ws/voice/session_123',
-          ws_token: 'mock_token',
+          ws_url: "ws://localhost:8001/ws/voice/session_123",
+          ws_token: "mock_token",
           agent: {
             id: psychologistId,
             name: psychologistConfig.name,
-            voice_prefs: {}
-          }
+            voice_prefs: {},
+          },
         };
 
         setSession(mockSession);
         connectWebSocket(mockSession);
       }, 2000);
-
     } catch (error) {
-      console.error('Session creation error:', error);
-      setConnectionStatus('Failed to start session');
+      console.error("Session creation error:", error);
+      setConnectionStatus("Failed to start session");
     }
   };
 
   const connectWebSocket = (sessionData: SessionResponse) => {
-    setConnectionStatus('Connecting to AI service...');
+    setConnectionStatus("Connecting to AI service...");
 
     // Simulate WebSocket connection (AI Service not running yet)
     setTimeout(() => {
@@ -100,15 +102,17 @@ const VideoCallSimple: React.FC = () => {
       setConnectionStatus(`Connected to ${psychologistConfig.name}`);
 
       // Add some demo transcript
-      setTranscripts([{
-        role: 'assistant',
-        text: `Hello! I am ${psychologistConfig.name}, your ${psychologistConfig.specialty}. How can I help you today?`
-      }]);
+      setTranscripts([
+        {
+          role: "assistant",
+          text: `Hello! I am ${psychologistConfig.name}, your ${psychologistConfig.specialty}. How can I help you today?`,
+        },
+      ]);
     }, 3000);
   };
 
-  const addTranscript = (role: 'user'|'assistant', text: string) => {
-    setTranscripts(prev => [...prev, { role, text }]);
+  const addTranscript = (role: "user" | "assistant", text: string) => {
+    setTranscripts((prev) => [...prev, { role, text }]);
   };
 
   const startRecording = async () => {
@@ -123,15 +127,18 @@ const VideoCallSimple: React.FC = () => {
       };
 
       mediaRecorder.onstop = () => {
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach((track) => track.stop());
         if (audioChunksRef.current.length > 0) {
           // In real implementation, send to AI service
-          console.log('Audio chunk captured:', audioChunksRef.current.length);
+          console.log("Audio chunk captured:", audioChunksRef.current.length);
           audioChunksRef.current = [];
 
           // Add demo response
           setTimeout(() => {
-            addTranscript('assistant', 'Thank you for sharing. Can you tell me more about this?');
+            addTranscript(
+              "assistant",
+              "Thank you for sharing. Can you tell me more about this?"
+            );
           }, 2000);
         }
       };
@@ -141,11 +148,13 @@ const VideoCallSimple: React.FC = () => {
       mediaRecorderRef.current = mediaRecorder;
 
       // Simulate user speaking
-      addTranscript('user', 'Demo user speech... (Actual STT will be implemented when AI service runs)');
-
+      addTranscript(
+        "user",
+        "Demo user speech... (Actual STT will be implemented when AI service runs)"
+      );
     } catch (error) {
-      console.error('Recording error:', error);
-      alert('Microphone access required for voice sessions');
+      console.error("Recording error:", error);
+      alert("Microphone access required for voice sessions");
     }
   };
 
@@ -169,22 +178,25 @@ const VideoCallSimple: React.FC = () => {
       // Stop video
       if (videoRef.current && videoRef.current.srcObject) {
         const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach((track) => track.stop());
       }
       setVideoEnabled(false);
     } else {
       // Start video (basic webcam without face analysis for demo)
-      navigator.mediaDevices.getUserMedia({
-        video: { width: 320, height: 240 },
-        audio: false
-      }).then(stream => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          setVideoEnabled(true);
-        }
-      }).catch(error => {
-        console.error('Video error:', error);
-      });
+      navigator.mediaDevices
+        .getUserMedia({
+          video: { width: 320, height: 240 },
+          audio: false,
+        })
+        .then((stream) => {
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            setVideoEnabled(true);
+          }
+        })
+        .catch((error) => {
+          console.error("Video error:", error);
+        });
     }
   };
 
@@ -192,7 +204,7 @@ const VideoCallSimple: React.FC = () => {
     // Stop all media tracks
     if (videoRef.current && videoRef.current.srcObject) {
       const stream = videoRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach(track => track.stop());
+      stream.getTracks().forEach((track) => track.stop());
     }
 
     if (mediaRecorderRef.current && recording) {
@@ -203,7 +215,7 @@ const VideoCallSimple: React.FC = () => {
       wsRef.current.close();
     }
 
-    navigate('/dashboard/video-conferencing');
+    navigate("/dashboard/video-conferencing");
   };
 
   return (
@@ -211,11 +223,19 @@ const VideoCallSimple: React.FC = () => {
       {/* Header with connection status */}
       <div className="absolute top-4 left-4 right-4 flex justify-between items-center z-10">
         <div className="bg-black bg-opacity-50 rounded-lg px-4 py-2">
-          <p className="text-white text-sm font-medium">{psychologistConfig.name}</p>
-          <p className="text-gray-300 text-xs">{psychologistConfig.specialty}</p>
+          <p className="text-white text-sm font-medium">
+            {psychologistConfig.name}
+          </p>
+          <p className="text-gray-300 text-xs">
+            {psychologistConfig.specialty}
+          </p>
         </div>
         <div className="bg-black bg-opacity-50 rounded-lg px-4 py-2">
-          <p className={`text-xs ${wsConnected ? 'text-green-400' : 'text-yellow-400'}`}>
+          <p
+            className={`text-xs ${
+              wsConnected ? "text-green-400" : "text-yellow-400"
+            }`}
+          >
             {connectionStatus}
           </p>
         </div>
@@ -240,14 +260,23 @@ const VideoCallSimple: React.FC = () => {
           <div className="bg-black bg-opacity-70 rounded-lg p-4 max-h-40 overflow-y-auto">
             <div className="space-y-2">
               {transcripts.slice(-3).map((transcript, index) => (
-                <div key={index} className={`flex ${transcript.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-xs px-3 py-2 rounded-lg text-sm ${
-                    transcript.role === 'user'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-600 text-white border border-gray-500'
-                  }`}>
+                <div
+                  key={index}
+                  className={`flex ${
+                    transcript.role === "user" ? "justify-end" : "justify-start"
+                  }`}
+                >
+                  <div
+                    className={`max-w-xs px-3 py-2 rounded-lg text-sm ${
+                      transcript.role === "user"
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-600 text-white border border-gray-500"
+                    }`}
+                  >
                     <div className="text-xs opacity-70 mb-1">
-                      {transcript.role === 'assistant' ? psychologistConfig.name : 'You'}
+                      {transcript.role === "assistant"
+                        ? psychologistConfig.name
+                        : "You"}
                     </div>
                     {transcript.text}
                   </div>
@@ -265,7 +294,7 @@ const VideoCallSimple: React.FC = () => {
         muted
         playsInline
         className="hidden"
-        style={{ display: 'none' }}
+        style={{ display: "none" }}
       />
 
       {/* User's Camera Feed Preview */}
@@ -278,7 +307,7 @@ const VideoCallSimple: React.FC = () => {
             playsInline
             className="w-full h-full object-cover"
             style={{
-              transform: 'scaleX(-1)',
+              transform: "scaleX(-1)",
             }}
           />
           <div className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
@@ -293,7 +322,11 @@ const VideoCallSimple: React.FC = () => {
           size="icon"
           className="h-12 w-12 rounded-full"
         >
-          {recording ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
+          {recording ? (
+            <MicOff className="h-6 w-6" />
+          ) : (
+            <Mic className="h-6 w-6" />
+          )}
         </Button>
 
         <Button
@@ -302,7 +335,11 @@ const VideoCallSimple: React.FC = () => {
           size="icon"
           className="h-12 w-12 rounded-full"
         >
-          {videoEnabled ? <VideoOff className="h-6 w-6" /> : <Video className="h-6 w-6" />}
+          {videoEnabled ? (
+            <VideoOff className="h-6 w-6" />
+          ) : (
+            <Video className="h-6 w-6" />
+          )}
         </Button>
 
         <Button

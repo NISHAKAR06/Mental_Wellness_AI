@@ -208,7 +208,7 @@ const DrEveBlack: React.FC = () => {
   // Configuration for 3D models
   const psychologistConfig = {
     name: 'Dr. Eve Black',
-    modelUrl: '/BLACK.glb', // Map to available 3D model
+    modelUrl: '/girl.glb', // Map to available 3D model
     specialty: 'Career Anxiety Specialist'
   };
 

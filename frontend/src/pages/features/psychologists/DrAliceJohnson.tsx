@@ -354,7 +354,7 @@ const DrAliceJohnson: React.FC = () => {
   // Configuration for 3D models
   const psychologistConfig = {
     name: "Dr. Alice Johnson",
-    modelUrl: "/ALICE.glb", // Map to available 3D model
+    modelUrl: "/girl.glb", // Map to available 3D model
     specialty: "Academic Stress Specialist",
   };
 
