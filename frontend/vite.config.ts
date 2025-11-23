@@ -5,8 +5,8 @@ import path from "path";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   // Get environment variables with fallbacks
-  const wsBaseUrl = process.env.VITE_WS_BASE_URL || (mode === 'production' ? : 'ws://localhost:8001');
-  const apiBaseUrl = process.env.VITE_API_BASE_URL || (mode === 'production' ? : 'http://localhost:8000');
+  const wsBaseUrl = process.env.VITE_WS_BASE_URL || (mode === 'production' ? 'wss://aiservicebackend-production.up.railway.app' : 'ws://localhost:8001');
+  const apiBaseUrl = process.env.VITE_API_BASE_URL || (mode === 'production' ? 'https://mainbackend-production-29cf.up.railway.app' : 'http://localhost:8000');
 
   return {
     server: {
