@@ -143,15 +143,14 @@ class WebSocketVoiceHandler:
             }
         }
 
-    async def handle_connection(self, websocket: WebSocket, session_id: str):
-        """Handle WebSocket connection for voice session"""
+    async def handle_voice_session_accepted(self, websocket: WebSocket, session_id: str):
+        """Handle WebSocket voice session when connection is already accepted"""
         try:
-            await websocket.accept()
-            print(f"🔗 WebSocket connection accepted for session: {session_id}")
-
+            print(f"🔗 Starting voice session handler for: {session_id} (connection already accepted)")
 
             # Check if demo mode is enabled (allow unauthenticated connections)
             DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
+            print(f"🔧 Demo mode enabled: {DEMO_MODE}")
 
             # Wait for initialization message from client
             try:
@@ -159,112 +158,236 @@ class WebSocketVoiceHandler:
                     websocket.receive_json(),
                     timeout=10.0
                 )
+                print(f"📩 Received init message: {init_message}")
 
                 # Validate the init message
                 token = init_message.get('token')
-                if not token and not DEMO_MODE:
-                    await websocket.send_json({
-                        "type": "error",
-                        "message": "Authentication token required"
-                    })
-                    return
+                agent_id = init_message.get('agent_id') or init_message.get('preferred_agent')
+                lang = init_message.get('lang', 'en-IN')
+                
+                # Default agent selection if none specified - FastAPI manages all agents
+                if not agent_id:
+                    agent_id = 'eve_black_career'  # Default professional counselor
+                    print(f"🎯 No agent specified, FastAPI selecting default: {agent_id}")
+                else:
+                    print(f"🎯 Client requested agent: {agent_id}, FastAPI will handle this agent")
 
-                if DEMO_MODE and not token:
-                    print(f"🔓 Demo mode: Allowing unauthenticated connection for session {session_id}")
-                    # Create default session data for demo
-                    agent_id = init_message.get('agent_id', 'eve_black_career')
-                    lang = init_message.get('lang', 'en-IN')
+                if DEMO_MODE:
+                    # Demo mode - skip JWT validation
+                    print(f"🔓 Demo mode: Processing session for agent {agent_id}")
                     payload = {
                         'user_id': f'demo_user_{session_id}',
-                        'agent_id': agent_id,
-                        'lang': lang,
                         'session_id': session_id,
-                        'consent': True
+                        'session_type': 'video_call'
                     }
+                else:
+                    # Production mode - validate JWT token
+                    if not token:
+                        await websocket.send_json({
+                            "type": "error",
+                            "message": "Authentication token required"
+                        })
+                        return
 
-                    # Store demo session data
-                    self.active_sessions[session_id] = payload
-
-                    # Initialize demo session components
                     try:
-                        agent_config = get_agent(payload['agent_id'])
-                        print(f"🎯 Loaded demo agent: {agent_config.name}")
-
-                        # Initialize memory manager for this demo session
-                        self.memory_managers[session_id] = MemoryManager(
-                            session_id=session_id,
-                            consent_store=payload['consent']
-                        )
-
-                        # Initialize emotion integrator if available
-                        if os.getenv("ENABLE_EMOTION_INTEGRATION", "true").lower() == "true" and EmotionIntegrator:
-                            self.emotion_integrators[session_id] = EmotionIntegrator(payload['user_id'])
-
-                        # Send connection confirmation
-                        await websocket.send_json({
-                            "type": "connection_established",
-                            "agent_name": agent_config.name,
-                            "voice_prefs": agent_config.voice_prefs,
-                            "demo_mode": True
-                        })
-
-                        print(f"🎉 Demo session initialization complete for {agent_config.name}")
-
-                    except Exception as e:
-                        print(f"❌ Demo session setup failed: {e}")
+                        payload = jwt.decode(token, self.secret_key, algorithms=['HS256'])
+                        print(f"✅ JWT validated successfully for session {session_id}")
+                        print(f"   User: {payload['user_id']}, Session Type: {payload.get('session_type', 'video_call')}")
+                    except jwt.InvalidTokenError as e:
+                        print(f"❌ JWT Validation Failed: {e}")
                         await websocket.send_json({
                             "type": "error",
-                            "message": f"Demo session setup failed: {str(e)}"
+                            "message": f"Invalid token: {str(e)}"
                         })
                         return
 
-                # Decode and validate JWT token
+                # Store session data with agent info
+                self.active_sessions[session_id] = {
+                    **payload,
+                    'agent_id': agent_id,
+                    'lang': lang,
+                    'consent': True
+                }
+
+                # Initialize session components with FastAPI-managed agent
+                session_data = self.active_sessions[session_id]
+                agent_config = get_agent(session_data['agent_id'])
+                print(f"🎯 Loaded AI agent: {agent_config.name} (Domain: {agent_config.domain})")
+
+                # Initialize memory manager for this session
+                self.memory_managers[session_id] = MemoryManager(
+                    session_id=session_id,
+                    consent_store=session_data['consent']
+                )
+
+                # Initialize emotion integrator if available
+                if os.getenv("ENABLE_EMOTION_INTEGRATION", "true").lower() == "true" and EmotionIntegrator:
+                    self.emotion_integrators[session_id] = EmotionIntegrator(session_data['user_id'])
+
+                # Send connection confirmation with agent details
+                await websocket.send_json({
+                    "type": "connection_established",
+                    "agent_name": agent_config.name,
+                    "agent_domain": agent_config.domain,
+                    "agent_languages": agent_config.languages,
+                    "voice_prefs": agent_config.voice_prefs,
+                    "demo_mode": DEMO_MODE
+                })
+
+                print(f"🎉 AI Conference session initialized: {agent_config.name}")
+
+                # Send initial greeting from AI agent (AI speaks first in video call)
+                initial_greeting = getattr(agent_config, 'initial_greeting', None) or \
+                    f"Hello! I'm {agent_config.name}, your AI {agent_config.domain} specialist. " \
+                    f"I'm here to support you today. How are you feeling?"
+                    
+                print(f"🎤 AI Agent speaking first: {initial_greeting[:50]}...")
+                await self._generate_ai_response_and_stream(websocket, session_id, initial_greeting)
+
+            except asyncio.TimeoutError:
+                await websocket.send_json({
+                    "type": "error",
+                    "message": "Authentication timeout"
+                })
+                return
+
+            # Main message loop - handle both text and binary messages
+            while True:
                 try:
-                    payload = jwt.decode(token, self.secret_key, algorithms=['HS256'])
-                    print(f"✅ JWT validated successfully for session {session_id}")
-                    print(f"   User: {payload['user_id']}, Agent: {payload['agent_id']}, Lang: {payload['lang']}")
+                    # Wait for any message type
+                    message = await websocket.receive()
+                    
+                    if "text" in message:
+                        # Handle JSON text message
+                        try:
+                            data = json.loads(message["text"])
+                            await self._handle_json_message(websocket, session_id, data)
+                        except json.JSONDecodeError:
+                            print(f"⚠️ Received invalid JSON: {message['text'][:50]}...")
+                            
+                    elif "bytes" in message:
+                        # Handle binary audio message
+                        await self._handle_binary_audio(websocket, session_id, message["bytes"])
+                        
+                    elif message.get("type") == "websocket.disconnect":
+                        print(f"WebSocket disconnect signal received")
+                        break
+                        
+                except WebSocketDisconnect:
+                    print("WebSocket disconnected")
+                    break
+                except Exception as e:
+                    print(f"❌ Error in message loop: {e}")
+                    break
 
-                    # Validate session ID matches URL parameter
-                    token_session_id = str(payload.get('session_id'))
-                    if token_session_id != session_id:
+        except WebSocketDisconnect:
+            print(f"WebSocket disconnected for session: {session_id}")
+        except Exception as e:
+            print(f"❌ Error in voice session handler: {e}")
+            import traceback
+            traceback.print_exc()
+        finally:
+            await self._cleanup_session(session_id)
+
+    async def handle_voice_session(self, websocket: WebSocket, session_id: str):
+        """Handle WebSocket voice session after connection is already accepted"""
+        try:
+            print(f"🔗 Starting voice session handler for: {session_id}")
+
+            # Check if demo mode is enabled (allow unauthenticated connections)
+            DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
+            print(f"🔧 Demo mode enabled: {DEMO_MODE}")
+
+            # Wait for initialization message from client
+            try:
+                init_message = await asyncio.wait_for(
+                    websocket.receive_json(),
+                    timeout=10.0
+                )
+                print(f"📩 Received init message: {init_message}")
+
+                # Validate the init message
+                token = init_message.get('token')
+                agent_id = init_message.get('agent_id') or init_message.get('preferred_agent')
+                lang = init_message.get('lang', 'en-IN')
+                
+                # Default agent selection if none specified - FastAPI manages all agents
+                if not agent_id:
+                    agent_id = 'eve_black_career'  # Default professional counselor
+                    print(f"🎯 No agent specified, FastAPI selecting default: {agent_id}")
+                else:
+                    print(f"🎯 Client requested agent: {agent_id}, FastAPI will handle this agent")
+
+                if DEMO_MODE:
+                    # Demo mode - skip JWT validation
+                    print(f"🔓 Demo mode: Processing session for agent {agent_id}")
+                    payload = {
+                        'user_id': f'demo_user_{session_id}',
+                        'session_id': session_id,
+                        'session_type': 'video_call'
+                    }
+                else:
+                    # Production mode - validate JWT token
+                    if not token:
                         await websocket.send_json({
                             "type": "error",
-                            "message": "Session ID mismatch"
+                            "message": "Authentication token required"
                         })
                         return
 
-                    # Store session data
-                    self.active_sessions[session_id] = payload
+                    try:
+                        payload = jwt.decode(token, self.secret_key, algorithms=['HS256'])
+                        print(f"✅ JWT validated successfully for session {session_id}")
+                        print(f"   User: {payload['user_id']}, Session Type: {payload.get('session_type', 'video_call')}")
+                    except jwt.InvalidTokenError as e:
+                        await websocket.send_json({
+                            "type": "error",
+                            "message": f"Invalid token: {str(e)}"
+                        })
+                        return
 
-                    # Initialize session components now that we have valid session data
-                    agent_config = get_agent(payload['agent_id'])
-                    print(f"🎯 Loaded agent: {agent_config.name}")
+                # Store session data with agent info
+                self.active_sessions[session_id] = {
+                    **payload,
+                    'agent_id': agent_id,
+                    'lang': lang,
+                    'consent': True
+                }
 
-                    # Initialize memory manager for this session
-                    self.memory_managers[session_id] = MemoryManager(
-                        session_id=session_id,
-                        consent_store=payload['consent']
-                    )
+                # Initialize session components with FastAPI-managed agent
+                session_data = self.active_sessions[session_id]
+                agent_config = get_agent(session_data['agent_id'])
+                print(f"🎯 Loaded AI agent: {agent_config.name} (Domain: {agent_config.domain})")
 
-                    # Initialize emotion integrator if available
-                    if os.getenv("ENABLE_EMOTION_INTEGRATION", "true").lower() == "true":
-                        self.emotion_integrators[session_id] = EmotionIntegrator(payload['user_id'])
+                # Initialize memory manager for this session
+                self.memory_managers[session_id] = MemoryManager(
+                    session_id=session_id,
+                    consent_store=session_data['consent']
+                )
 
-                    # Send connection confirmation
-                    await websocket.send_json({
-                        "type": "connection_established",
-                        "agent_name": agent_config.name,
-                        "voice_prefs": agent_config.voice_prefs
-                    })
+                # Initialize emotion integrator if available
+                if os.getenv("ENABLE_EMOTION_INTEGRATION", "true").lower() == "true" and EmotionIntegrator:
+                    self.emotion_integrators[session_id] = EmotionIntegrator(session_data['user_id'])
 
-                    print(f"🎉 Session initialization complete for {agent_config.name}")
+                # Send connection confirmation with agent details
+                await websocket.send_json({
+                    "type": "connection_established",
+                    "agent_name": agent_config.name,
+                    "agent_domain": agent_config.domain,
+                    "agent_languages": agent_config.languages,
+                    "voice_prefs": agent_config.voice_prefs,
+                    "demo_mode": DEMO_MODE
+                })
 
-                except jwt.InvalidTokenError as e:
-                    await websocket.send_json({
-                        "type": "error",
-                        "message": f"Invalid token: {str(e)}"
-                    })
-                    return
+                print(f"🎉 AI Conference session initialized: {agent_config.name}")
+
+                # Send initial greeting from AI agent (AI speaks first in video call)
+                initial_greeting = getattr(agent_config, 'initial_greeting', None) or \
+                    f"Hello! I'm {agent_config.name}, your AI {agent_config.domain} specialist. " \
+                    f"I'm here to support you today. How are you feeling?"
+                    
+                print(f"🎤 AI Agent speaking first: {initial_greeting[:50]}...")
+                await self._generate_ai_response_and_stream(websocket, session_id, initial_greeting)
 
             except asyncio.TimeoutError:
                 await websocket.send_json({
@@ -290,16 +413,33 @@ class WebSocketVoiceHandler:
         except WebSocketDisconnect:
             print(f"WebSocket disconnected for session: {session_id}")
             await self._cleanup_session(session_id)
+        except WebSocketDisconnect:
+            print(f"WebSocket disconnected for session: {session_id}")
         except Exception as e:
-            print(f"Error in WebSocket handler: {e}")
-            await self._cleanup_session(session_id)
+            print(f"❌ Error in voice session handler: {e}")
+        finally:
+            # Clean up any resources if needed
+            pass
 
     async def _handle_json_message(self, websocket: WebSocket, session_id: str, message: Dict[str, Any]):
         """Handle incoming JSON WebSocket messages"""
         message_type = message.get('type')
 
-        if message_type == 'user_utterance_end':
+        if message_type == 'audio_chunk':
+            # Handle base64-encoded audio data from frontend
+            audio_data = message.get('audio_data')
+            if audio_data:
+                try:
+                    # Decode base64 audio data to bytes
+                    audio_bytes = base64.b64decode(audio_data)
+                    await self._handle_binary_audio(websocket, session_id, audio_bytes)
+                    print(f"📥 Received base64 audio chunk: {len(audio_bytes)} bytes")
+                except Exception as e:
+                    print(f"❌ Error decoding base64 audio: {e}")
+        elif message_type == 'user_utterance_end':
             await self._process_utterance(websocket, session_id)
+        elif message_type == 'no_speech_detected':
+            await self._handle_no_speech(websocket, session_id)
         elif message_type == 'barge_in':
             await self._handle_barge_in(websocket, session_id)
         elif message_type == 'end_session':
@@ -323,6 +463,12 @@ class WebSocketVoiceHandler:
     async def _process_utterance(self, websocket: WebSocket, session_id: str):
         """Process user utterance after receiving end signal"""
         try:
+            # Send processing notification to frontend
+            await websocket.send_json({
+                "type": "processing_voice",
+                "message": "Processing your voice..."
+            })
+
             session_data = self.active_sessions[session_id]
             agent_config = get_agent(session_data['agent_id'])
             lang = session_data['lang']
@@ -343,7 +489,7 @@ class WebSocketVoiceHandler:
             # Clear buffer for next utterance
             self.audio_buffers[session_id] = []
 
-            # Step 1: Speech-to-Text (placeholder - would integrate with Google STT)
+            # Step 1: Speech-to-Text
             user_text = await self._speech_to_text(combined_audio, lang)
 
             if not user_text:
@@ -427,6 +573,9 @@ class WebSocketVoiceHandler:
     async def _handle_barge_in(self, websocket: WebSocket, session_id: str):
         """Handle user interrupting current response"""
         try:
+            # Stop backend TTS loop
+            self.tts_active[session_id] = False
+            
             # Clear any ongoing audio
             await websocket.send_json({
                 "type": "stop_tts"
@@ -573,6 +722,34 @@ class WebSocketVoiceHandler:
             # Fallback: return simulation text if STT fails
             return f"Speech recognition temporarily unavailable ({language})"
 
+    def _create_wav_chunk(self, duration_sec: float) -> bytes:
+        """Create a valid WAV byte string for a given duration of silence/tone"""
+        import io
+        import wave
+        import math
+        import struct
+        
+        buf = io.BytesIO()
+        with wave.open(buf, 'wb') as wav:
+            n_channels = 1
+            sampwidth = 2
+            framerate = 24000
+            n_frames = int(framerate * duration_sec)
+            
+            wav.setparams((n_channels, sampwidth, framerate, n_frames, 'NONE', 'not compressed'))
+            
+            # Generate a simple sine wave tone (440Hz) so user hears something in demo mode
+            # or just silence if preferred. Let's do a very quiet low hum to indicate "active"
+            values = []
+            for i in range(n_frames):
+                # 200Hz tone, low volume
+                value = int(3000 * math.sin(2 * math.pi * 200 * i / framerate))
+                values.append(struct.pack('<h', value))
+                
+            wav.writeframes(b''.join(values))
+            
+        return buf.getvalue()
+
     async def _text_to_speech_and_stream(self, websocket: WebSocket, text: str, lang: str):
         """
         Google Text-to-Text processing with sentence-level chunking (1-3 MP3 chunks)
@@ -602,42 +779,103 @@ class WebSocketVoiceHandler:
             voice_name = lang_config['voice_name']
 
             print(f"🎵 Generating TTS in {lang} with {len(chunks)} chunks: {voice_name}")
+            print(f"🔧 TTS Settings: ENABLE_REAL_TTS={ENABLE_REAL_TEXT_TO_SPEECH}, GOOGLE_CLOUD={GOOGLE_CLOUD_AVAILABLE}")
 
             if ENABLE_REAL_TEXT_TO_SPEECH and GOOGLE_CLOUD_AVAILABLE:
+                print("✅ Using Real Google Cloud TTS")
                 # Use Google TTS for production
-                client = texttospeech.TextToSpeechClient()
+                try:
+                    # Set up Google Cloud credentials
+                    import os
+                    creds_path = os.path.join(os.path.dirname(__file__), '..', 'hip-wharf-473408-m8-5c0e43084eef.json')
+                    if os.path.exists(creds_path):
+                        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = creds_path
+                        print(f"✅ Google Cloud credentials set: {creds_path}")
+                    
+                    client = texttospeech.TextToSpeechClient()
+                    print("✅ Google TTS client created successfully")
+                except Exception as e:
+                    print(f"❌ Failed to create TTS client: {e}")
+                    # Fall back to simulation mode
+                    print("⚠️ Falling back to TTS simulation mode")
+                    for i, chunk_text in enumerate(chunks):
+                        # Generate valid WAV audio (approx duration based on text length)
+                        duration = max(1.0, len(chunk_text.split()) * 0.3)
+                        mock_audio = self._create_wav_chunk(duration)
+                        audio_base64 = base64.b64encode(mock_audio).decode('utf-8')
+                        
+                        if websocket.client_state.name == 'CONNECTED':
+                            await websocket.send_json({
+                                "type": "ai_audio_chunk",
+                                "data": {
+                                    "audio_base64": audio_base64,
+                                    "chunk_index": i,
+                                    "total_chunks": len(chunks),
+                                    "text": chunk_text,
+                                    "simulation": True
+                                }
+                            })
+                        await asyncio.sleep(0.2)
+                    
+                    if websocket.client_state.name == 'CONNECTED':
+                        await websocket.send_json({"type": "tts_complete", "total_chunks": len(chunks)})
+                    return
 
                 # Prepare TTS requests for each chunk
-                tts_config = texttospeech.Voice(
-                    language_code=lang.split('-')[0] + '-' + lang.split('-')[1],  # en-IN, hi-IN, etc.
-                    name=voice_name
-                )
+                try:
+                    tts_config = texttospeech.VoiceSelectionParams(
+                        language_code=lang.split('-')[0] + '-' + lang.split('-')[1],  # en-IN, hi-IN, etc.
+                        name=voice_name
+                    )
 
-                audio_config = texttospeech.AudioConfig(
-                    audio_encoding=texttospeech.AudioEncoding.MP3,
-                    speaking_rate=0.9,  # Slightly slower for clarity
-                    pitch=0.0,
-                )
+                    audio_config = texttospeech.AudioConfig(
+                        audio_encoding=texttospeech.AudioEncoding.MP3,
+                        speaking_rate=0.9,  # Slightly slower for clarity
+                        pitch=0.0,
+                    )
+                    print("✅ TTS configuration created successfully")
+                except Exception as e:
+                    print(f"❌ Failed to create TTS configuration: {e}")
+                    return
 
                 # Process each chunk
                 for i, chunk_text in enumerate(chunks):
                     if session_id and not self.tts_active.get(session_id, True):
                         break  # Barge-in interrupt
 
+                    # Check if WebSocket is still connected
+                    if websocket.client_state.name != 'CONNECTED':
+                        print(f"WebSocket disconnected during TTS generation")
+                        break
+
                     # Generate TTS for this chunk
-                    synthesis_input = texttospeech.SynthesisInput(text=chunk_text)
-                    response = await asyncio.get_event_loop().run_in_executor(
-                        None,
-                        lambda: client.synthesize_speech(
-                            input=synthesis_input,
-                            voice=tts_config,
-                            audio_config=audio_config
+                    try:
+                        synthesis_input = texttospeech.SynthesisInput(text=chunk_text)
+                        print(f"🎵 Synthesizing chunk {i+1}/{len(chunks)}: '{chunk_text[:30]}...'")
+                        
+                        response = await asyncio.get_event_loop().run_in_executor(
+                            None,
+                            lambda: client.synthesize_speech(
+                                input=synthesis_input,
+                                voice=tts_config,
+                                audio_config=audio_config
+                            )
                         )
-                    )
+                        print(f"✅ Chunk {i+1} synthesized successfully ({len(response.audio_content)} bytes)")
+                        
+                    except Exception as e:
+                        print(f"❌ TTS synthesis failed for chunk {i+1}: {e}")
+                        # Skip this chunk and continue
+                        continue
 
                     # Convert to base64 for WebSocket transport
                     audio_content = response.audio_content
                     audio_base64 = base64.b64encode(audio_content).decode('utf-8')
+
+                    # Check again before sending
+                    if websocket.client_state.name != 'CONNECTED':
+                        print(f"WebSocket disconnected before sending chunk {i}")
+                        break
 
                     # Stream chunk to client
                     await websocket.send_json({
@@ -653,47 +891,51 @@ class WebSocketVoiceHandler:
                     # Small delay between chunks for natural speaking rhythm
                     await asyncio.sleep(min(0.05 * len(chunk_text.split()), 0.3))
 
-                else:
-                    # Google TTS not available - simulation mode
-                    print("⚠️ Using TTS simulation mode")
+            else:
+                # Google TTS not available - simulation mode
+                print("⚠️ Using TTS simulation mode")
 
-                    for i, chunk_text in enumerate(chunks):
-                        if session_id and not self.tts_active.get(session_id, True):
-                            break  # Barge-in interrupt
+                for i, chunk_text in enumerate(chunks):
+                    if session_id and not self.tts_active.get(session_id, True):
+                        break  # Barge-in interrupt
 
-                        # Simulate TTS audio chunk
-                        # Generate a mock audio size based on text length
-                        mock_audio_size = len(chunk_text.encode('utf-8')) * 50  # Rough estimation
-                        mock_audio = b'\x00' * mock_audio_size  # Placeholder audio data
-                        audio_base64 = base64.b64encode(mock_audio).decode('utf-8')
+                    # Simulate TTS audio chunk with valid WAV
+                    duration = max(1.0, len(chunk_text.split()) * 0.3)
+                    mock_audio = self._create_wav_chunk(duration)
+                    audio_base64 = base64.b64encode(mock_audio).decode('utf-8')
 
-                        await websocket.send_json({
-                            "type": "ai_audio_chunk",
-                            "data": {
-                                "audio_base64": audio_base64,
-                                "chunk_index": i,
-                                "total_chunks": len(chunks),
-                                "text": chunk_text,
-                                "simulation": True
-                            }
-                        })
+                    await websocket.send_json({
+                        "type": "ai_audio_chunk",
+                        "data": {
+                            "audio_base64": audio_base64,
+                            "chunk_index": i,
+                            "total_chunks": len(chunks),
+                            "text": chunk_text,
+                            "simulation": True
+                        }
+                    })
 
-                        # Simulated speaking delay
-                        await asyncio.sleep(min(0.1 * len(chunk_text.split()), 0.5))
+                    # Simulated speaking delay
+                    await asyncio.sleep(min(0.1 * len(chunk_text.split()), 0.5))
 
             # Mark TTS as complete
-            await websocket.send_json({
-                "type": "tts_complete",
-                "total_chunks": len(chunks)
-            })
+            if websocket.client_state.name == 'CONNECTED':
+                await websocket.send_json({
+                    "type": "tts_complete",
+                    "total_chunks": len(chunks)
+                })
 
         except Exception as e:
             print(f"❌ TTS Error: {e}")
-            # Send error completion
-            await websocket.send_json({
-                "type": "tts_complete",
-                "error": str(e)
-            })
+            # Send error completion only if connected
+            try:
+                if websocket.client_state.name == 'CONNECTED':
+                    await websocket.send_json({
+                        "type": "tts_complete",
+                        "error": str(e)
+                    })
+            except:
+                pass
 
         finally:
             # Clear TTS active status
@@ -772,3 +1014,76 @@ class WebSocketVoiceHandler:
 
         except Exception as e:
             print(f"Error sending safety alert: {e}")
+
+    async def _generate_ai_response_and_stream(self, websocket: WebSocket, session_id: str, text: str):
+        """Generate AI response and stream it to the client"""
+        try:
+            # Check if websocket is still connected
+            if websocket.client_state.name != 'CONNECTED':
+                print(f"WebSocket not connected for session {session_id}")
+                return
+
+            # Send the text response first
+            await websocket.send_json({
+                "type": "ai_text",
+                "data": {"text": text}
+            })
+
+            # Send TTS processing notification
+            await websocket.send_json({
+                "type": "generating_tts",
+                "message": "Generating voice response..."
+            })
+
+            # Get session data for voice preferences
+            session_data = self.active_sessions.get(session_id)
+            if not session_data:
+                print(f"No session data found for {session_id}")
+                return
+
+            agent_config = get_agent(session_data['agent_id'])
+            lang = session_data.get('lang', 'en-IN')
+            
+            # Generate and stream TTS
+            await self._text_to_speech_and_stream(
+                websocket, 
+                text, 
+                agent_config.voice_prefs.get(lang, lang)
+            )
+
+        except Exception as e:
+            print(f"Error generating AI response: {e}")
+            try:
+                if websocket.client_state.name == 'CONNECTED':
+                    await websocket.send_json({
+                        "type": "error",
+                        "message": "Error generating response"
+                    })
+            except:
+                pass
+
+    async def _handle_no_speech(self, websocket: WebSocket, session_id: str):
+        """Handle case where no speech was detected from user"""
+        try:
+            print(f"😶 No speech detected for session {session_id}")
+            
+            session_data = self.active_sessions.get(session_id)
+            if not session_data:
+                return
+                
+            lang = session_data.get('lang', 'en-IN')
+            
+            # Simple prompts to nudge the user
+            prompts = {
+                'en-IN': "Tell me, I'm listening...",
+                'hi-IN': "बताइए, मैं सुन रहा हूँ...",
+                'ta-IN': "சொல்லுங்கள், நான் கேட்கிறேன்..."
+            }
+            
+            prompt_text = prompts.get(lang, prompts['en-IN'])
+            
+            # Send text and audio
+            await self._generate_ai_response_and_stream(websocket, session_id, prompt_text)
+            
+        except Exception as e:
+            print(f"Error handling no speech: {e}")

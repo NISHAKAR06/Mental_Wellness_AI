@@ -95,31 +95,95 @@ app = FastAPI(
 # CORS middleware for frontend communication
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure for production
+    allow_origins=["*"],  # Allow all origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Add CORS for WebSocket connections
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi import WebSocket, Request
+# Root endpoint
+@app.get("/")
+async def root():
+    return {"message": "AI Psychologist Service", "status": "running", "version": "1.0.0"}
 
-@app.middleware("http")
-async def add_cors_headers(request: Request, call_next):
-    response = await call_next(request)
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Credentials"] = "true"
-    response.headers["Access-Control-Allow-Methods"] = "*"
-    response.headers["Access-Control-Allow-Headers"] = "*"
-    return response
+# Health check endpoint
+@app.get("/health")
+async def health():
+    return {"status": "healthy", "services": ["voice", "emotion", "llm"]}
+
+# Test WebSocket connection
+@app.get("/test-ws")
+async def test_websocket():
+    return {"message": "WebSocket endpoint available at /ws/voice/{session_id}"}
 
 # WebSocket routes
 ws_handler = WebSocketVoiceHandler()
 
+# Simple test WebSocket endpoint
+@app.websocket("/ws/test")
+async def websocket_test_endpoint(websocket: WebSocket):
+    print("🔗 Test WebSocket endpoint called")
+    try:
+        await websocket.accept()
+        print("✅ Test WebSocket connection accepted")
+        await websocket.send_json({"type": "test", "message": "WebSocket working!"})
+        await websocket.close()
+    except Exception as e:
+        print(f"❌ Error in test WebSocket: {e}")
+
+# Simple demo WebSocket for video calls (no authentication)
+# Real WebSocket for video calls - both endpoints go to same handler
+@app.websocket("/ws/demo/{session_id}")
+async def websocket_demo_endpoint(websocket: WebSocket, session_id: str):
+    print(f"🔗 Demo WebSocket endpoint called for session: {session_id} - redirecting to voice handler")
+    # Accept connection immediately
+    await websocket.accept()
+    print(f"✅ Demo WebSocket connection accepted for session: {session_id}")
+    
+    try:
+        # Handle the connection with our real voice handler
+        await ws_handler.handle_voice_session(websocket, session_id)
+    except Exception as e:
+        print(f"❌ Error in demo WebSocket endpoint: {e}")
+        try:
+            await websocket.close()
+        except:
+            pass
+
 @app.websocket("/ws/voice/{session_id}")
 async def websocket_voice_endpoint(websocket: WebSocket, session_id: str):
-    await ws_handler.handle_connection(websocket, session_id)
+    print(f"🔗 WebSocket endpoint called for session: {session_id}")
+    
+    # Accept connection immediately - no validation at FastAPI level
+    try:
+        await websocket.accept()
+        print(f"✅ WebSocket connection accepted for session: {session_id}")
+        
+        # Send immediate confirmation
+        await websocket.send_json({
+            "type": "connection_ready",
+            "session_id": session_id,
+            "message": "FastAPI WebSocket connected successfully"
+        })
+        
+        # Now handle the voice session - pass that connection is already accepted
+        await ws_handler.handle_voice_session_accepted(websocket, session_id)
+        
+    except Exception as e:
+        print(f"❌ WebSocket error for session {session_id}: {e}")
+        import traceback
+        traceback.print_exc()
+        try:
+            await websocket.send_json({
+                "type": "error",
+                "message": f"WebSocket error: {str(e)}"
+            })
+        except:
+            pass
+        try:
+            await websocket.close()
+        except:
+            pass
 
 # Define emotion endpoints conditionally
 if EMOTION_HANDLER_AVAILABLE:

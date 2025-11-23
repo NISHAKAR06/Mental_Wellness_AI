@@ -57,8 +57,24 @@ Risk levels:
 - medium: significant distress, possible self-harm ideation
 - high: immediate danger, active self-harm intent, severe crisis"""
 
-            model = genai.GenerativeModel(self.model_name)
-            response = model.generate_content(prompt, generation_config=self.generation_config)
+            # List of models to try for risk classification
+            models_to_try = ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash", "gemini-pro"]
+            
+            response = None
+            
+            for model_name in models_to_try:
+                try:
+                    model = genai.GenerativeModel(model_name)
+                    response = model.generate_content(prompt, generation_config=self.generation_config)
+                    if response:
+                        break
+                except Exception as e:
+                    print(f"⚠️ Risk model {model_name} failed: {e}")
+                    continue
+            
+            if not response:
+                print("❌ All risk models failed, falling back to pattern matching")
+                return self._quick_pattern_check(text)
 
             # Parse JSON response
             result = self._parse_json_response(response.text)

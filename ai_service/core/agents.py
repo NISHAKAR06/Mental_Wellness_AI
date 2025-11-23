@@ -94,15 +94,15 @@ def get_all_agents() -> Dict[str, AgentConfig]:
     return {
         'alice_johnson_academic': AgentConfig(
             agent_id='alice_johnson_academic',
-            name='Dr. Alice Johnson',
+            name='Dr. Alex Johnson',
             domain='academic',
             languages=['en-IN', 'hi-IN', 'ta-IN'],
             system_prompt=_get_enhanced_system_prompt('academic_stress_psychologist'),
             safety_prompt=_get_safety_prompt(),
             voice_prefs={
-                'en-IN': 'en-IN-Neural2-A',
-                'hi-IN': 'hi-IN-Standard-A',
-                'ta-IN': 'ta-IN-Standard-A'
+                'en-IN': 'en-IN-Neural2-B', # Male
+                'hi-IN': 'hi-IN-Standard-B', # Male
+                'ta-IN': 'ta-IN-Standard-B'  # Male
             },
             description='Academic stress specialist using CBT with tiny achievable actions. Never diagnoses, focuses on practical steps for Indian students.',
             active=True
@@ -115,24 +115,24 @@ def get_all_agents() -> Dict[str, AgentConfig]:
             system_prompt=_get_enhanced_system_prompt('relationships_psychologist'),
             safety_prompt=_get_safety_prompt(),
             voice_prefs={
-                'en-IN': 'en-IN-Neural2-A',
-                'hi-IN': 'hi-IN-Standard-A',
-                'ta-IN': 'ta-IN-Standard-B'
+                'en-IN': 'en-IN-Neural2-A', # Female
+                'hi-IN': 'hi-IN-Standard-A', # Female
+                'ta-IN': 'ta-IN-Standard-A'  # Female
             },
             description='Relationships specialist focused on communication and healthy boundaries. NO couples counseling, individual support only.',
             active=True
         ),
         'eve_black_career': AgentConfig(
             agent_id='eve_black_career',
-            name='Dr. Eve Black',
+            name='Dr. Evan Black',
             domain='career',
             languages=['en-IN', 'hi-IN', 'ta-IN'],
             system_prompt=_get_enhanced_system_prompt('career_anxiety_psychologist'),
             safety_prompt=_get_safety_prompt(),
             voice_prefs={
-                'en-IN': 'en-IN-Neural2-A',
-                'hi-IN': 'hi-IN-Standard-A',
-                'ta-IN': 'ta-IN-Standard-A'
+                'en-IN': 'en-IN-Neural2-C', # Male
+                'hi-IN': 'hi-IN-Standard-C', # Male
+                'ta-IN': 'ta-IN-Standard-C'  # Male
             },
             description='Career anxiety specialist focused on clarity experiments and reframing career thoughts. Workplace harassment watch.',
             active=True
@@ -192,7 +192,7 @@ def _get_system_prompt(agent_id: str) -> str:
 def _get_enhanced_system_prompt(agent_type: str) -> str:
     """Get enhanced system prompts for video conferencing (one-on-one conversations)"""
     enhanced_prompts = {
-        'academic_stress_psychologist': """You are Dr. Alice Johnson, an academic stress specialist having a real-time video conversation with a patient. You specialize in CBT-based support for Indian students facing exam pressure, study anxiety, and family expectations.
+        'academic_stress_psychologist': """You are Dr. Alex Johnson, an academic stress specialist having a real-time video conversation with a patient. You specialize in CBT-based support for Indian students facing exam pressure, study anxiety, and family expectations.
 
 Key behaviors for video calls:
 - Establish warm, genuine connection right away
@@ -232,7 +232,7 @@ Conversation style:
 
 Avoid any advice that could be seen as side-taking in relationships.""",
 
-        'career_anxiety_psychologist': """You are Dr. Eve Black, a career anxiety specialist having a video conversation with a patient. You help with career uncertainty, impostor syndrome, workplace stress, and life direction.
+        'career_anxiety_psychologist': """You are Dr. Evan Black, a career anxiety specialist having a video conversation with a patient. You help with career uncertainty, impostor syndrome, workplace stress, and life direction.
 
 Key behaviors for video calls:
 - Help patient explore their values and interests

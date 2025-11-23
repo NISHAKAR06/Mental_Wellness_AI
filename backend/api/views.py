@@ -26,12 +26,8 @@ User = get_user_model()
 @csrf_exempt
 def get_agents(request):
     if request.method == 'GET':
-        # First try to get agents from FastAPI service (built-in agents)
-        fastapi_agents = get_agents_from_fastapi()
-        if fastapi_agents:
-            return JsonResponse({'agents': fastapi_agents})
-
-        # Fallback to Django database
+        # Return agents from Django database only
+        # FastAPI handles actual agent selection and management
         agents = Agent.objects.filter(active=True).order_by('name')
         agents_data = []
         for agent in agents:
@@ -46,30 +42,6 @@ def get_agents(request):
         return JsonResponse({'agents': agents_data})
     else:
         return JsonResponse({'error': 'Invalid request method'}, status=405)
-
-def get_agents_from_fastapi():
-    """Get agents from FastAPI AI service directly"""
-    try:
-        fastapi_url = getattr(settings, 'FASTAPI_URL', 'http://localhost:8001')
-        import requests
-        response = requests.get(f"{fastapi_url}/agents", timeout=5)
-        if response.status_code == 200:
-            data = response.json()
-            # Convert to format expected by frontend
-            agents = []
-            for agent in data.get('agents', []):
-                agents.append({
-                    'id': agent['id'],
-                    'name': agent['name'],
-                    'domain': agent['domain'],
-                    'languages': agent['languages'],
-                    'description': agent['description'],
-                    'voice_prefs': agent['voice_prefs']
-                })
-            return agents
-    except Exception as e:
-        print(f"FastAPI agents unavailable: {e}")
-    return []
 
 @csrf_exempt
 def get_agent_by_id(request, agent_id):
@@ -98,85 +70,66 @@ def start_session(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            agent_id = data.get('agent_id')
-            lang = data.get('lang', 'en-IN')
-            consent_store = data.get('consent_store', False)
-
-            # Validate required data
-            if not agent_id:
-                return JsonResponse({'error': 'agent_id is required'}, status=400)
-
-            # Try to get agent from Django DB first, then FastAPI
-            try:
-                agent = Agent.objects.get(agent_id=agent_id, active=True)
-            except Agent.DoesNotExist:
-                # Try to get from FastAPI service built-in agents
-                fastapi_agents = get_agents_from_fastapi()
-                matching_agent = next((a for a in fastapi_agents if a['id'] == agent_id), None)
-                if matching_agent:
-                    # Create a temporary agent-like object for session creation
-                    from django.contrib.auth.models import User
-                    class TempAgent:
-                        def __init__(self, data):
-                            self.agent_id = data['id']
-                            self.name = data['name']
-                            self.voice_prefs = data['voice_prefs']
-                    agent = TempAgent(matching_agent)
-                else:
-                    return JsonResponse({'error': 'Agent not found'}, status=404)
-
-            # Create or get demo user for testing (in production, use authenticated user)
+            user_id = data.get('user_id', 'demo_user')
+            
+            # Create or get demo user for testing
             user, created = get_user_model().objects.get_or_create(
-                username='demo_user',
+                username=user_id,
                 defaults={
-                    'email': 'demo@example.com',
+                    'email': f'{user_id}@example.com',
                     'first_name': 'Demo',
                     'last_name': 'User'
                 }
             )
 
-            # If user was just created, set a simple password for demo purposes
+            # If user was just created, set a simple password
             if created:
                 user.set_password('demo123')
                 user.save()
 
-            # Create VoiceSession
-            session = VoiceSession.objects.create(
-                user=user,
-                agent=agent,
-                lang=lang,
-                consented_store=consent_store,
-                risk_level='none'
+            # Get or create a default agent for session storage
+            # FastAPI will handle actual agent selection
+            default_agent, agent_created = Agent.objects.get_or_create(
+                agent_id='career_anxiety_psychologist',
+                defaults={
+                    'name': 'Default Agent (Managed by FastAPI)',
+                    'domain': 'career',
+                    'languages': ['en-IN'],
+                    'description': 'Default placeholder - FastAPI manages actual agents',
+                    'system_prompt': 'Managed by FastAPI',
+                    'safety_prompt': 'Managed by FastAPI',
+                    'voice_prefs': {}
+                }
             )
 
-            # Generate WS token (10 minutes)
+            # Create VoiceSession with existing model fields
+            session = VoiceSession.objects.create(
+                user=user,
+                agent=default_agent,  # Placeholder - FastAPI will handle real agent
+                lang='en-IN',
+                consented_store=True
+            )
+
+            # Generate JWT token for FastAPI authentication
             token_payload = {
-                'user_id': session.user_id,
+                'user_id': user.id,
                 'session_id': str(session.session_id),
-                'agent_id': session.agent.agent_id,
-                'lang': session.lang,
-                'consent': consent_store,
-                'exp': datetime.utcnow() + timedelta(minutes=10)
+                'exp': datetime.utcnow() + timedelta(hours=1)
             }
             token = jwt.encode(token_payload, settings.SECRET_KEY, algorithm='HS256')
 
-            # Ensure token is string (PyJWT returns bytes in older versions)
+            # Ensure token is string
             if isinstance(token, bytes):
                 token = token.decode('utf-8')
 
+            # FastAPI will handle all AI agent logic
             return JsonResponse({
                 'session_id': str(session.session_id),
-                'ws_url': f'ws://localhost:8001/ws/voice/{session.session_id}/',
+                'ws_url': f'ws://localhost:8003/ws/voice/{session.session_id}',
                 'ws_token': token,
-                'agent': {
-                    'id': agent.agent_id,
-                    'name': agent.name,
-                    'voice_prefs': agent.voice_prefs
-                }
+                'message': 'Session created. AI agent will be managed by FastAPI service.'
             })
 
-        except Agent.DoesNotExist:
-            return JsonResponse({'error': 'Agent not found'}, status=404)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
     else:

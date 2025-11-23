@@ -37,6 +37,14 @@ export const ThreeJsModelViewer: React.FC<ThreeJsModelViewerProps> = ({
   const clockRef = useRef<THREE.Clock>(new THREE.Clock());
   const animationIdRef = useRef<number | null>(null);
 
+  // Refs for blinking animation
+  const faceMeshRef = useRef<THREE.Mesh | null>(null);
+  const blinkMorphIndexRef = useRef<number>(-1);
+  const mouthMorphIndexRef = useRef<number>(-1);
+  const nextBlinkTimeRef = useRef<number>(0);
+  const isBlinkingRef = useRef<boolean>(false);
+  const blinkStartTimeRef = useRef<number>(0);
+
   // Refs for mutable state to avoid re-running effects
   const voicePlayingRef = useRef(voicePlaying);
   const modelPositionRef = useRef(modelPosition);
@@ -154,6 +162,64 @@ export const ThreeJsModelViewer: React.FC<ThreeJsModelViewerProps> = ({
         // Simplify materials and disable shadows
         model.traverse((node) => {
           if (node instanceof THREE.Mesh) {
+            // Check for morph targets (for blinking)
+            if (node.morphTargetDictionary && node.morphTargetInfluences) {
+              const dict = node.morphTargetDictionary;
+              // Look for common blink names
+              const blinkName = Object.keys(dict).find(
+                (k) =>
+                  k.toLowerCase().includes("blink") ||
+                  (k.toLowerCase().includes("eye") &&
+                    k.toLowerCase().includes("close"))
+              );
+
+              if (blinkName && faceMeshRef.current === null) {
+                faceMeshRef.current = node;
+                blinkMorphIndexRef.current = dict[blinkName];
+                console.log("👁️ Found blink morph target:", blinkName);
+              }
+
+              // Look for mouth open morph target
+              const mouthName = Object.keys(dict).find(
+                (k) =>
+                  (k.toLowerCase().includes("mouth") &&
+                    k.toLowerCase().includes("open")) ||
+                  (k.toLowerCase().includes("jaw") &&
+                    k.toLowerCase().includes("open")) ||
+                  k.toLowerCase() === "viseme_aa" ||
+                  k.toLowerCase() === "aa" ||
+                  k.toLowerCase() === "mouthopen" ||
+                  k.toLowerCase().includes("viseme") // Fallback: any viseme
+              );
+
+              if (mouthName) {
+                // If we haven't set the face mesh yet, or if this is the same mesh
+                if (
+                  faceMeshRef.current === null ||
+                  faceMeshRef.current === node
+                ) {
+                  faceMeshRef.current = node;
+                  mouthMorphIndexRef.current = dict[mouthName];
+                  console.log("👄 Found mouth morph target:", mouthName);
+                }
+              } else {
+                // Fallback: Try to find ANY morph target if no specific mouth one is found
+                // This is a "last resort" to get some movement
+                if (
+                  Object.keys(dict).length > 0 &&
+                  mouthMorphIndexRef.current === -1
+                ) {
+                  const firstKey = Object.keys(dict)[0];
+                  mouthMorphIndexRef.current = dict[firstKey];
+                  console.log(
+                    "⚠️ Using fallback morph target for mouth:",
+                    firstKey
+                  );
+                  if (faceMeshRef.current === null) faceMeshRef.current = node;
+                }
+              }
+            }
+
             node.castShadow = false;
             node.receiveShadow = false;
             node.frustumCulled = false;
@@ -241,6 +307,74 @@ export const ThreeJsModelViewer: React.FC<ThreeJsModelViewerProps> = ({
       const elapsed = clockRef.current.getElapsedTime();
       const isTalking = voicePlayingRef.current;
 
+      // Blinking Logic
+      if (
+        faceMeshRef.current &&
+        blinkMorphIndexRef.current !== -1 &&
+        faceMeshRef.current.morphTargetInfluences
+      ) {
+        // Start a new blink?
+        if (!isBlinkingRef.current && now > nextBlinkTimeRef.current) {
+          isBlinkingRef.current = true;
+          blinkStartTimeRef.current = now;
+          // Schedule next blink (random 0.5-2.5 seconds) - Increased frequency
+          nextBlinkTimeRef.current = now + 500 + Math.random() * 2000;
+        }
+
+        // Animate current blink
+        if (isBlinkingRef.current) {
+          const blinkDuration = 150; // ms
+          const progress = (now - blinkStartTimeRef.current) / blinkDuration;
+
+          if (progress >= 1) {
+            isBlinkingRef.current = false;
+            faceMeshRef.current.morphTargetInfluences[
+              blinkMorphIndexRef.current
+            ] = 0;
+          } else {
+            // Sine wave 0 -> 1 -> 0
+            const value = Math.sin(progress * Math.PI);
+            faceMeshRef.current.morphTargetInfluences[
+              blinkMorphIndexRef.current
+            ] = value;
+          }
+        }
+      }
+
+      // Lip Sync Logic
+      if (
+        faceMeshRef.current &&
+        mouthMorphIndexRef.current !== -1 &&
+        faceMeshRef.current.morphTargetInfluences
+      ) {
+        if (isTalking) {
+          // Simple lip sync simulation using sine wave + noise
+          // Speed ~15Hz for speech
+          const time = now * 0.02;
+          // Combine sine waves for more natural look
+          const value =
+            (Math.sin(time) * 0.5 + 0.5) * 0.6 + Math.random() * 0.2;
+
+          // Smooth transition could be added here, but direct mapping is responsive
+          faceMeshRef.current.morphTargetInfluences[
+            mouthMorphIndexRef.current
+          ] = Math.min(0.8, Math.max(0, value));
+        } else {
+          // Close mouth smoothly
+          const current =
+            faceMeshRef.current.morphTargetInfluences[
+              mouthMorphIndexRef.current
+            ];
+          // Faster closing
+          faceMeshRef.current.morphTargetInfluences[
+            mouthMorphIndexRef.current
+          ] = Math.max(0, current - 0.2);
+        }
+      } else if (isTalking && modelRef.current) {
+        // Fallback: If no morph targets, bob the head more vigorously
+        modelRef.current.rotation.x = Math.sin(elapsed * 15) * 0.05;
+      }
+
       if (modelRef.current) {
         // Base breathing animation (always active)
         const breathSpeed = isTalking ? 2 : 1;
@@ -250,16 +384,16 @@ export const ThreeJsModelViewer: React.FC<ThreeJsModelViewerProps> = ({
           Math.sin(elapsed * breathSpeed) * breathAmp;
 
         if (isTalking) {
-          // Head movement (nodding/swaying)
-          modelRef.current.rotation.y = Math.sin(elapsed * 3) * 0.05;
-          modelRef.current.rotation.x = Math.sin(elapsed * 2) * 0.03;
+          // Head movement (nodding/swaying) - Increased amplitude
+          modelRef.current.rotation.y = Math.sin(elapsed * 3) * 0.15;
+          modelRef.current.rotation.x = Math.sin(elapsed * 2) * 0.08;
 
-          // Subtle body sway
-          modelRef.current.rotation.z = Math.sin(elapsed * 1.5) * 0.02;
+          // Subtle body sway - Increased
+          modelRef.current.rotation.z = Math.sin(elapsed * 1.5) * 0.05;
         } else {
-          // Idle drift
-          modelRef.current.rotation.y = Math.sin(elapsed * 0.5) * 0.02;
-          modelRef.current.rotation.x = Math.sin(elapsed * 0.3) * 0.01;
+          // Idle drift - Slightly increased
+          modelRef.current.rotation.y = Math.sin(elapsed * 0.5) * 0.05;
+          modelRef.current.rotation.x = Math.sin(elapsed * 0.3) * 0.03;
           modelRef.current.rotation.z = 0;
         }
       }

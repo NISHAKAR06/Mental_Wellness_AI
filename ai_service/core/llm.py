@@ -22,7 +22,7 @@ else:
 
 class LLMHandler:
     def __init__(self):
-        self.model_name = "gemini-2.5-flash"
+        self.model_name = "gemini-1.5-flash"
         self.generation_config = GenerationConfig(
             temperature=0.4,
             max_output_tokens=250,  # Keep responses short
@@ -77,27 +77,80 @@ class LLMHandler:
                 "parts": [user_text]
             })
 
-            # Create model with system instruction
-            model = genai.GenerativeModel(
-                model_name=self.model_name,
-                system_instruction=system_prompt
-            )
+            # List of models to try in order of preference
+            models_to_try = ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash", "gemini-pro"]
+            
+            response = None
+            last_error = None
 
-            # Add function calling if available
-            if function_schemas:
-                # Note: Gemini function calling would be implemented here
-                # For now, we'll use heuristics to determine function calls
-                function_call = self._check_function_trigger(user_text, function_schemas)
-                if function_call:
-                    return self._execute_function_locally(function_call), {"function_called": function_call}
+            for model_name in models_to_try:
+                try:
+                    print(f"🤖 Attempting to generate with model: {model_name}")
+                    
+                    # Try with system_instruction (supported by newer models)
+                    try:
+                        model = genai.GenerativeModel(
+                            model_name=model_name,
+                            system_instruction=system_prompt
+                        )
+                        response = model.generate_content(
+                            messages,
+                            generation_config=self.generation_config
+                        )
+                    except Exception as inner_e:
+                        # Fallback for models/libraries that don't support system_instruction
+                        # or if the API call fails with specific parameter errors
+                        print(f"⚠️ Standard generation failed for {model_name}, trying prompt injection: {inner_e}")
+                        
+                        # Create a deep copy of messages for this attempt
+                        fallback_messages = json.loads(json.dumps(messages))
+                        
+                        # Inject system prompt into the first user message
+                        if fallback_messages and fallback_messages[0]['role'] == 'user':
+                            fallback_messages[0]['parts'][0] = f"System Instruction: {system_prompt}\n\nUser Message: {fallback_messages[0]['parts'][0]}"
+                        else:
+                            fallback_messages.insert(0, {"role": "user", "parts": [f"System Instruction: {system_prompt}"]})
+                            
+                        model = genai.GenerativeModel(model_name=model_name)
+                        response = model.generate_content(
+                            fallback_messages,
+                            generation_config=self.generation_config
+                        )
+                    
+                    # If we got here, we have a response
+                    if response:
+                        break
+                        
+                except Exception as e:
+                    print(f"❌ Model {model_name} failed: {e}")
+                    last_error = e
+                    continue
 
-            # Generate response
-            response = model.generate_content(
-                messages,
-                generation_config=self.generation_config
-            )
+            if not response:
+                print("💀 All models failed to generate a response.")
+                if last_error:
+                    print(f"Last error: {last_error}")
+                    # Try to list available models for debugging
+                    try:
+                        print("📋 Available models for your API key:")
+                        for m in genai.list_models():
+                            if 'generateContent' in m.supported_generation_methods:
+                                print(f"   - {m.name}")
+                    except Exception as list_err:
+                        print(f"Could not list models: {list_err}")
+                        
+                return "I'm having trouble connecting to my brain right now. Please check my configuration.", {"error": str(last_error)}
 
-            reply_text = response.text.strip() if response.text else ""
+            # Safely extract text
+            reply_text = ""
+            if response.candidates and response.candidates[0].content.parts:
+                reply_text = response.text.strip()
+            elif response.prompt_feedback and response.prompt_feedback.block_reason:
+                print(f"⚠️ Response blocked: {response.prompt_feedback.block_reason}")
+                reply_text = "I'm sorry, I can't respond to that specific query due to safety guidelines. Can we discuss something else?"
+            else:
+                print(f"⚠️ Empty response from model. Finish reason: {response.candidates[0].finish_reason if response.candidates else 'Unknown'}")
+                reply_text = "I'm listening. Could you please rephrase that?"
 
             # Check if this should trigger safety response
             safety_metadata = self._analyze_for_safety(reply_text)
