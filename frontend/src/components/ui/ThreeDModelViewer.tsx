@@ -55,107 +55,133 @@ function SafeRenderingPlayer({
 
   // Enhanced animation system with error handling
   useEffect(() => {
-    if (!modelLoaded || !actions || hasError) return;
+    if (!modelLoaded || !mixer || hasError) return;
 
     try {
+      console.log("🎬 Setting up animations...", {
+        voicePlaying,
+        actions: Object.keys(actions || {}),
+      });
+
       if (voicePlaying) {
         // Try to play talking animation if available
         const talkingAction =
-          actions.talking || actions.speak || actions.Talk || actions.Talking;
-        if (talkingAction) {
+          actions?.talking ||
+          actions?.speak ||
+          actions?.Talk ||
+          actions?.Talking;
+        if (talkingAction && mixer) {
+          // Stop all other actions
           Object.values(actions).forEach((action) => action?.stop());
-          talkingAction.reset().play();
+
+          // Play talking animation
+          talkingAction.reset().fadeIn(0.2).play();
           console.log("🗣️ Playing talking animation");
+        } else {
+          console.log("⚠️ No talking animation found");
         }
       } else {
         // Play idle animation if available
         const idleAction =
-          actions.idle || actions.Idle || actions.Rest || actions.Stand;
-        if (idleAction) {
+          actions?.idle || actions?.Idle || actions?.Rest || actions?.Stand;
+        if (idleAction && mixer) {
+          // Stop all other actions
           Object.values(actions).forEach((action) => action?.stop());
-          idleAction.reset().play();
+
+          // Play idle animation
+          idleAction.reset().fadeIn(0.2).play();
           console.log("😌 Playing idle animation");
+        } else {
+          console.log(
+            "⚠️ No idle animation found, using procedural animations"
+          );
         }
       }
     } catch (animationError) {
       console.warn("⚠️ Animation error:", animationError);
     }
-  }, [voicePlaying, actions, modelLoaded, hasError]);
+  }, [voicePlaying, actions, mixer, modelLoaded, hasError]);
 
   // Humanized character movements with realistic timing
   useFrame((state, delta) => {
     if (!groupRef.current) return;
 
     try {
-      // Natural breathing animation
-      breathingPhaseRef.current += delta * 1.2;
-      const breathingScale = 1 + Math.sin(breathingPhaseRef.current) * 0.02; // Increased for more visible breathing
-      if (groupRef.current.scale) {
-        groupRef.current.scale.y = scale * breathingScale;
+      // Update animation mixer FIRST and always
+      if (mixer) {
+        mixer.update(delta);
       }
 
-      // Realistic blinking
-      blinkTimerRef.current += delta;
-      if (blinkTimerRef.current > 2.5 + Math.random() * 3) {
-        // 2.5-5.5 seconds between blinks
-        blinkTimerRef.current = 0;
+      // Get the actual model from the group
+      const model = groupRef.current.children[0];
+      if (!model) return;
+
+      // Natural breathing animation - more visible
+      breathingPhaseRef.current += delta * 1.5;
+      const breathingScale = 1 + Math.sin(breathingPhaseRef.current) * 0.08;
+
+      // Apply breathing to the model, not the group
+      if (model.scale) {
+        model.scale.set(breathingScale, breathingScale, breathingScale);
       }
 
-      // Enhanced lip sync with natural movement (throttled updates)
+      // Enhanced animations based on state
       if (voicePlaying) {
-        const baseIntensity = 0.4 + Math.sin(state.clock.elapsedTime * 8) * 0.2;
-        const randomVariation = (Math.random() - 0.5) * 0.3;
-        const newIntensity = Math.max(0.1, baseIntensity + randomVariation);
+        // Talking movements - more pronounced
+        const talkingBob = Math.sin(state.clock.elapsedTime * 2.5) * 0.2;
+        const talkingTurn = Math.sin(state.clock.elapsedTime * 1.8) * 0.25;
+        const talkingTilt = Math.sin(state.clock.elapsedTime * 1.2) * 0.1;
 
-        // Only update state if there's a significant change (throttle re-renders)
-        if (Math.abs(newIntensity - lipSyncRef.current) > 0.05) {
-          lipSyncRef.current = newIntensity;
-          setLipSyncIntensity(newIntensity);
+        // Apply movements to the model
+        if (model.rotation) {
+          model.rotation.x = talkingBob;
+          model.rotation.y = talkingTurn;
+          model.rotation.z = talkingTilt;
         }
 
-        // Natural head movements while talking
-        const talkingBob = Math.sin(state.clock.elapsedTime * 1.8) * 0.1; // Increased intensity
-        const talkingTurn = Math.sin(state.clock.elapsedTime * 1.2) * 0.15; // Increased intensity
+        // Lip sync intensity
+        const newIntensity = 0.6 + Math.sin(state.clock.elapsedTime * 15) * 0.4;
+        lipSyncRef.current = newIntensity;
+        setLipSyncIntensity(newIntensity);
 
-        if (groupRef.current.rotation) {
-          groupRef.current.rotation.y = talkingTurn;
-          groupRef.current.rotation.x = talkingBob;
-          groupRef.current.rotation.z =
-            Math.sin(state.clock.elapsedTime * 0.8) * 0.05; // Increased intensity
-        }
+        console.log("🎭 Talking animation active:", talkingBob.toFixed(2));
       } else {
-        // Only update if currently not zero
+        // Idle movements - subtle but visible
+        const idleSway = Math.sin(state.clock.elapsedTime * 0.8) * 0.15;
+        const idleNod = Math.sin(state.clock.elapsedTime * 0.5) * 0.1;
+        const idleTilt = Math.sin(state.clock.elapsedTime * 0.3) * 0.06;
+
+        // Apply to model
+        if (model.rotation) {
+          model.rotation.x = idleNod;
+          model.rotation.y = idleSway;
+          model.rotation.z = idleTilt;
+        }
+
+        // Reset lip sync
         if (lipSyncRef.current !== 0) {
           lipSyncRef.current = 0;
           setLipSyncIntensity(0);
         }
 
-        // Gentle idle movements
-        const idleSway = Math.sin(state.clock.elapsedTime * 0.6) * 0.08; // Increased intensity
-        const idleNod = Math.sin(state.clock.elapsedTime * 0.4) * 0.06; // Increased intensity
-
-        if (groupRef.current.rotation) {
-          groupRef.current.rotation.y = idleSway;
-          groupRef.current.rotation.x = idleNod;
-          groupRef.current.rotation.z =
-            Math.sin(state.clock.elapsedTime * 0.3) * 0.03; // Added subtle roll
-        }
+        console.log("😌 Idle animation active:", idleSway.toFixed(2));
       }
 
-      // Update animation mixer safely (only if model loaded)
-      if (mixer && modelLoaded) {
-        mixer.update(delta);
-      }
-
-      // Add position animations for more humanized movement
+      // Position animations for natural movement
       if (groupRef.current.position) {
-        // Subtle swaying motion
-        const sway = Math.sin(state.clock.elapsedTime * 0.8) * 0.02;
-        const bob = Math.sin(state.clock.elapsedTime * 1.2) * 0.015;
+        const sway = Math.sin(state.clock.elapsedTime * 1.0) * 0.05;
+        const bob = Math.sin(state.clock.elapsedTime * 1.5) * 0.03;
 
         groupRef.current.position.x = position[0] + sway;
         groupRef.current.position.y = position[1] + bob;
         groupRef.current.position.z = position[2];
+      }
+
+      // Realistic blinking timer
+      blinkTimerRef.current += delta;
+      if (blinkTimerRef.current > 3 + Math.random() * 2) {
+        blinkTimerRef.current = 0;
+        console.log("👁️ Blink triggered");
       }
     } catch (frameError) {
       console.warn("⚠️ Frame animation error:", frameError);
@@ -441,13 +467,25 @@ export function ThreeDModelViewer({
       }}
     >
       <Canvas
-        camera={{ position: cameraPosition, fov: 50 }}
+        camera={{
+          position: cameraPosition,
+          fov: 45,
+          near: 0.1,
+          far: 1000,
+        }}
         style={{
           backgroundColor: backgroundImage ? "transparent" : backgroundColor,
         }}
         shadows
-        gl={{ antialias: true, alpha: true }}
+        gl={{
+          antialias: true,
+          alpha: true,
+          preserveDrawingBuffer: true,
+        }}
         dpr={[1, 2]}
+        onCreated={({ camera }) => {
+          camera.lookAt(0, 0, 0);
+        }}
       >
         <Suspense
           fallback={

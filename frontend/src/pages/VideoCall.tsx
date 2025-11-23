@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { ThreeDModelViewer } from "../components/ui/ThreeDModelViewer";
+import { ThreeJsModelViewer } from "../components/ui/ThreeJsModelViewer";
 import * as faceapi from "face-api.js";
 
 interface SessionResponse {
@@ -79,27 +79,27 @@ const VideoCall: React.FC = () => {
         modelUrl: "/agent1.glb", // Enhanced rendering model
         backgroundImage: "/agent1_background_img.jpg",
         specialty: "Career Anxiety Specialist",
-        scale: 3.5,
-        modelPosition: [0, -3.4, 0] as [number, number, number],
-        cameraPosition: [0, -6.6, 20] as [number, number, number],
+        scale: 1.3,
+        modelPosition: [0, -1.4, 0] as [number, number, number],
+        cameraPosition: [0, 0.4, 1.6] as [number, number, number],
       },
       carol_white_relationships: {
         name: "Dr. Carol White",
         modelUrl: "/agent2.glb", // Updated to agent2 3D model
         backgroundImage: "/agent2_background_img.jpg",
         specialty: "Relationships Problems Specialist",
-        scale: 5.0,
-        modelPosition: [0, -3.4, 0] as [number, number, number],
-        cameraPosition: [0, -6.6, 20] as [number, number, number],
-      },  
+        scale: 1.3,
+        modelPosition: [0, -1.4, 0] as [number, number, number],
+        cameraPosition: [0, 0.4, 1.6] as [number, number, number],
+      },
       alice_johnson_academic: {
         name: "Dr. Alice Johnson",
         modelUrl: "/agent3.glb", // Enhanced rendering model
         backgroundImage: "/agent3_background_img.jpg",
         specialty: "Academic Stress Specialist",
-        scale: 3.5,
-        modelPosition: [0, -3.4, 0] as [number, number, number],
-        cameraPosition: [0, -6.6, 20] as [number, number, number],
+        scale: 1.3,
+        modelPosition: [0, -1.4, 0] as [number, number, number],
+        cameraPosition: [0, 0.4, 1.6] as [number, number, number],
       },
     };
     return configs[id] || configs["eve_black_career"];
@@ -604,7 +604,7 @@ const VideoCall: React.FC = () => {
 
         {/* Main Speaker View - Full Screen */}
         <div className="relative w-full h-full">
-          <ThreeDModelViewer
+          <ThreeJsModelViewer
             modelUrl={psychologistConfig.modelUrl}
             scale={psychologistConfig.scale}
             modelPosition={psychologistConfig.modelPosition}
