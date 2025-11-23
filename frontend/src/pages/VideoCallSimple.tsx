@@ -147,9 +147,12 @@ const VideoCallSimple: React.FC = () => {
 
       // In a real app, we would fetch a token from the backend here
       // For now, we'll use the demo mode or a mock token
+      const fastApiUrl = import.meta.env.VITE_FASTAPI_URL || "http://localhost:8001";
+      const wsBaseUrl = fastApiUrl.replace(/^http/, "ws");
+      
       const mockSession: SessionResponse = {
         session_id: sessionId,
-        ws_url: `ws://localhost:8001/ws/voice/${sessionId}`,
+        ws_url: `${wsBaseUrl}/ws/voice/${sessionId}`,
         ws_token: "mock_token", // The backend accepts this in demo mode
         agent: {
           id: selectedPsychologistId,

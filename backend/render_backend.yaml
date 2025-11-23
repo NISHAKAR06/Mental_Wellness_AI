@@ -1,0 +1,30 @@
+# Render Blueprint for Django Backend & Database
+
+services:
+  # Django Backend Service
+  - type: web
+    name: mental-wellness-backend
+    runtime: docker
+    plan: starter  # Change to 'free' for testing (not recommended for production)
+    region: oregon
+    branch: main
+    rootDir: backend
+    healthCheckPath: /api/health/
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: DEBUG
+        value: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        value: postgresql://neondb_owner:npg_Ef6Vi0qzCOrt@ep-purple-river-adkr4bkd-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+      - key: ALLOWED_HOSTS
+        value: mental-wellness-ai-backend.onrender.com
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://mentalwellnessai.vercel.app
+      - key: FASTAPI_URL
+        value: https://ai-psychologist-service.onrender.com
+      - key: GEMINI_API_KEY
+        value: AIzaSyDAgm2L0sHxLXv5BPGK0vPRZTqs2I2BpKA  # Add your Google Gemini API key
+    autoDeploy: true

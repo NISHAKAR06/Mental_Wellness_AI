@@ -42,11 +42,8 @@ USER appuser
 # Collect static files
 RUN python manage.py collectstatic --noinput
 
-# Run migrations
-RUN python manage.py migrate --noinput
-
 # Expose port
 EXPOSE 8000
 
 # Start Daphne server
-CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "backend.asgi:application"]
+CMD ["sh", "-c", "python manage.py migrate && daphne -b 0.0.0.0 -p ${PORT:-8000} backend.asgi:application"]

@@ -93,9 +93,11 @@ app = FastAPI(
 )
 
 # CORS middleware for frontend communication
+origins = os.getenv("CORS_ALLOWED_ORIGINS", "*").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -1,0 +1,36 @@
+# Render Blueprint for FastAPI AI Service
+
+services:
+  # FastAPI AI Service
+  - type: web
+    name: mental-wellness-ai-service
+    runtime: docker
+    plan: starter
+    region: oregon
+    branch: main
+    rootDir: ai_service
+    healthCheckPath: /health
+    envVars:
+      - key: ENABLE_REAL_SPEECH_TO_TEXT
+        value: "true"
+      - key: ENABLE_REAL_TEXT_TO_SPEECH
+        value: "true"
+      - key: FALLBACK_TO_DEMO_VOICE
+        value: "true"
+      - key: GOOGLE_APPLICATION_CREDENTIALS
+        value: "/etc/secrets/hip-wharf-473408-m8-5c0e43084eef.json"
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: PORT
+        value: 8001
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DJANGO_URL
+        value: https://mental-wellness-ai-backend.onrender.com
+      - key: GEMINI_API_KEY
+        value: AIzaSyDAgm2L0sHxLXv5BPGK0vPRZTqs2I2BpKA # Add your Google Gemini API key
+      - key: GOOGLE_CLOUD_PROJECT
+        value: hip-wharf-473408-m8  # Add your GCP project ID if needed
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://mentalwellnessai.vercel.app
+    autoDeploy: true

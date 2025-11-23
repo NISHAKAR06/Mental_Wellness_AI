@@ -92,7 +92,7 @@ ASGI_APPLICATION = "backend.asgi.application"
 
 # Database
 
-DATABASE_URL = os.getenv('DATABASE_PUBLIC_URL', 'postgresql://neondb_owner:npg_fH08qnwxoQXa@ep-jolly-brook-adl391p2-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require')
+DATABASE_URL = os.getenv('DATABASE_URL', os.getenv('DATABASE_PUBLIC_URL', 'postgresql://neondb_owner:npg_Ef6Vi0qzCOrt@ep-purple-river-adkr4bkd-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require'))
 
 DATABASES = {
     'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600)

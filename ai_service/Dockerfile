@@ -17,6 +17,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libopenblas0 \
     liblapack3 \
     libatlas3-base \
+    libgl1 \
+    libglib2.0-0 \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -48,4 +50,4 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=30s --retries=3 \
 EXPOSE $PORT
 
 # Start with environment variable port support
-CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "1", "--loop", "asyncio"]
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8001} --workers 1 --loop asyncio"]
