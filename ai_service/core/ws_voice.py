@@ -1004,6 +1004,7 @@ class WebSocketVoiceHandler:
             response = requests.post(
                 f"{django_url}/api/alerts/",
                 json=alert_data,
+                headers={'X-Internal-Token': os.getenv('INTERNAL_AI_TOKEN', 'your-secret-token-here')},
                 timeout=5
             )
 

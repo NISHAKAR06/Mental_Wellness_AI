@@ -102,6 +102,11 @@ if not DATABASE_URL:
     DATABASE_URL = "sqlite:///db.sqlite3"
     print("⚠️ WARNING: DATABASE_URL not found, using SQLite fallback.")
 
+# Handle the case where DATABASE_URL might be an empty string (not just None)
+if DATABASE_URL == "":
+    DATABASE_URL = "sqlite:///db.sqlite3"
+    print("⚠️ WARNING: DATABASE_URL is empty string, using SQLite fallback.")
+
 DATABASES = {
     'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600)
 }
