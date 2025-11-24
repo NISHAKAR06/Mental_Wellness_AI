@@ -123,9 +123,13 @@ def start_session(request):
                 token = token.decode('utf-8')
 
             # FastAPI will handle all AI agent logic
+            # Construct WebSocket URL dynamically based on settings
+            ws_host = settings.FASTAPI_WS_URL
+            ws_protocol = "wss" if "onrender.com" in ws_host or "https" in settings.FASTAPI_URL else "ws"
+            
             return JsonResponse({
                 'session_id': str(session.session_id),
-                'ws_url': f'ws://localhost:8003/ws/voice/{session.session_id}',
+                'ws_url': f'{ws_protocol}://{ws_host}/ws/voice/{session.session_id}',
                 'ws_token': token,
                 'message': 'Session created. AI agent will be managed by FastAPI service.'
             })
@@ -373,9 +377,12 @@ def start_session_view(request):
         }
         token = jwt.encode(token_payload, settings.SECRET_KEY, algorithm='HS256')
 
+        ws_host = settings.FASTAPI_WS_URL or "localhost:8001"
+        ws_protocol = "wss" if "onrender.com" in ws_host or "https" in settings.FASTAPI_URL else "ws"
+
         return Response({
             'session_id': str(session.session_id),
-            'ws_url': f'wss://{settings.FASTAPI_WS_URL or "localhost:8001"}/ws/v1/voice_session',
+            'ws_url': f'{ws_protocol}://{ws_host}/ws/voice/{session.session_id}',
             'ws_token': token if isinstance(token, str) else token.decode('utf-8'),
             'agent': AgentSerializer(agent).data
         })

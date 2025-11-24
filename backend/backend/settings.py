@@ -24,7 +24,7 @@ DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 import urllib.parse
 
 # Allowed hosts from environment
-allowed_hosts_env = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,*.up.railway.app')
+allowed_hosts_env = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,.onrender.com')
 ALLOWED_HOSTS = []
 for host in allowed_hosts_env.split(','):
     host = host.strip()
@@ -33,6 +33,9 @@ for host in allowed_hosts_env.split(','):
         ALLOWED_HOSTS.append(parsed.hostname)
     else:
         ALLOWED_HOSTS.append(host)
+
+# CSRF Trusted Origins for production (Render/Vercel)
+CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'http://localhost:3000,https://*.onrender.com,https://*.vercel.app').split(',')
 
 
 # Application definition
@@ -153,4 +156,5 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # AI Service Integration
 FASTAPI_URL = os.getenv("FASTAPI_URL", "http://localhost:8001")
+FASTAPI_WS_URL = os.getenv("FASTAPI_WS_URL", "localhost:8001")
 INTERNAL_AI_TOKEN = os.getenv("INTERNAL_AI_TOKEN", "your-secret-token-here")
