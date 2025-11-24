@@ -63,7 +63,9 @@ MIDDLEWARE = [
 ]
 
 # CORS settings - configurable for production
-CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000').split(',')
+# Clean up origins to remove trailing slashes which cause errors
+cors_origins_raw = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000').split(',')
+CORS_ALLOWED_ORIGINS = [origin.strip().rstrip('/') for origin in cors_origins_raw if origin.strip()]
 
 # For production, allow specific origins or use allow_all for pre-configured domains
 if os.getenv('CORS_ALLOW_ALL', 'false').lower() == 'true':
