@@ -6,7 +6,7 @@ A comprehensive mental health support platform featuring AI-powered psychotherap
 
 Mental Wellness AI is an end-to-end mental health technology platform that combines:
 
-- **Voice-based AI Psychotherapy**: 3 specialized AI psychologists trained in CBT techniques
+- **Voice and video-based AI Psychotherapy**: 3 specialized AI psychologists trained in CBT techniques
 - **Real-time Emotional Intelligence**: Continuous emotion monitoring with therapeutic insights
 - **Session Analytics**: AI-powered session summarization for therapy continuity
 - **Therapeutic Gaming**: Interactive cognitive behavioral exercises
