@@ -125,6 +125,9 @@ def start_session(request):
             # FastAPI will handle all AI agent logic
             # Construct WebSocket URL dynamically based on settings
             ws_host = settings.FASTAPI_WS_URL
+            # Clean up host if it accidentally includes protocol
+            ws_host = ws_host.replace("https://", "").replace("http://", "").replace("wss://", "").replace("ws://", "").strip("/")
+            
             ws_protocol = "wss" if "onrender.com" in ws_host or "https" in settings.FASTAPI_URL else "ws"
             
             return JsonResponse({
@@ -378,6 +381,9 @@ def start_session_view(request):
         token = jwt.encode(token_payload, settings.SECRET_KEY, algorithm='HS256')
 
         ws_host = settings.FASTAPI_WS_URL or "localhost:8001"
+        # Clean up host if it accidentally includes protocol
+        ws_host = ws_host.replace("https://", "").replace("http://", "").replace("wss://", "").replace("ws://", "").strip("/")
+        
         ws_protocol = "wss" if "onrender.com" in ws_host or "https" in settings.FASTAPI_URL else "ws"
 
         return Response({
