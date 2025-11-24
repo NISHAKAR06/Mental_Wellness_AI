@@ -92,7 +92,13 @@ ASGI_APPLICATION = "backend.asgi.application"
 
 # Database
 
-DATABASE_URL = os.getenv('DATABASE_URL', os.getenv('DATABASE_PUBLIC_URL', 'postgresql://neondb_owner:npg_Ef6Vi0qzCOrt@ep-purple-river-adkr4bkd-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require'))
+# Ensure DATABASE_URL is set, otherwise fallback to SQLite for build process if needed, or raise clear error
+DATABASE_URL = os.getenv('DATABASE_URL')
+
+if not DATABASE_URL:
+    # Fallback for build process where DB might not be available yet
+    DATABASE_URL = "sqlite:///db.sqlite3"
+    print("⚠️ WARNING: DATABASE_URL not found, using SQLite fallback.")
 
 DATABASES = {
     'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600)
