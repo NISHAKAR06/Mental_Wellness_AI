@@ -520,7 +520,7 @@ class WebSocketVoiceHandler:
                 })
 
                 # Generate TTS (placeholder)
-                await self._text_to_speech_and_stream(websocket, safety_reply, agent_config.voice_prefs.get(lang))
+                await self._text_to_speech_and_stream(websocket, safety_reply, lang, agent_config.voice_prefs.get(lang))
 
                 # Send safety alert to Django backend
                 await self._send_safety_alert(
@@ -561,7 +561,7 @@ class WebSocketVoiceHandler:
             })
 
             # Step 9: Generate and stream TTS
-            await self._text_to_speech_and_stream(websocket, ai_reply, agent_config.voice_prefs.get(lang))
+            await self._text_to_speech_and_stream(websocket, ai_reply, lang, agent_config.voice_prefs.get(lang))
 
         except Exception as e:
             print(f"Error processing utterance: {e}")
@@ -750,7 +750,7 @@ class WebSocketVoiceHandler:
             
         return buf.getvalue()
 
-    async def _text_to_speech_and_stream(self, websocket: WebSocket, text: str, lang: str):
+    async def _text_to_speech_and_stream(self, websocket: WebSocket, text: str, lang: str, specific_voice: str = None):
         """
         Google Text-to-Text processing with sentence-level chunking (1-3 MP3 chunks)
         Stream MP3 chunks for fast perceived response time
@@ -764,6 +764,7 @@ class WebSocketVoiceHandler:
         try:
             if session_id and self.active_sessions.get(session_id):
                 session_data = self.active_sessions[session_id]
+                # Ensure we use the session language
                 lang = session_data.get('lang', 'en-IN')
 
             # Stop any ongoing TTS for barge-in functionality
@@ -776,7 +777,9 @@ class WebSocketVoiceHandler:
 
             # Get language-specific TTS configuration
             lang_config = self.lang_configs.get(lang, self.lang_configs['en-IN'])
-            voice_name = lang_config['voice_name']
+            
+            # Use specific voice if provided, otherwise default
+            voice_name = specific_voice if specific_voice else lang_config['voice_name']
 
             print(f"🎵 Generating TTS in {lang} with {len(chunks)} chunks: {voice_name}")
             print(f"🔧 TTS Settings: ENABLE_REAL_TTS={ENABLE_REAL_TEXT_TO_SPEECH}, GOOGLE_CLOUD={GOOGLE_CLOUD_AVAILABLE}")
@@ -1049,6 +1052,7 @@ class WebSocketVoiceHandler:
             await self._text_to_speech_and_stream(
                 websocket, 
                 text, 
+                lang,
                 agent_config.voice_prefs.get(lang, lang)
             )
 

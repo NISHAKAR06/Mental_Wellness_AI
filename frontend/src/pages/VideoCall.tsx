@@ -131,7 +131,7 @@ const VideoCall: React.FC = () => {
   const getPsychologistConfig = (id: string) => {
     const configs = {
       eve_black_career: {
-        name: "Dr. Eve Black",
+        name: "Dr. Evan Black",
         modelUrl: "/agent1.glb", // Enhanced rendering model
         backgroundImage: "/agent1_background_img.jpg",
         specialty: "Career Anxiety Specialist",
@@ -149,7 +149,7 @@ const VideoCall: React.FC = () => {
         cameraPosition: [0, 0.4, 1.6] as [number, number, number],
       },
       alice_johnson_academic: {
-        name: "Dr. Alice Johnson",
+        name: "Dr. Alex Johnson",
         modelUrl: "/agent3.glb", // Enhanced rendering model
         backgroundImage: "/agent3_background_img.jpg",
         specialty: "Academic Stress Specialist",
