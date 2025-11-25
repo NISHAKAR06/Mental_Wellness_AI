@@ -64,12 +64,68 @@ const VideoCall: React.FC = () => {
   const selectedLanguage = searchParams.get("lang") || "en-IN";
 
   const wsRef = useRef<WebSocket | null>(null);
+  const isConnectingRef = useRef<boolean>(false); // Prevent double connections
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const analysisVideoRef = useRef<HTMLVideoElement>(null);
   const previewVideoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const emotionIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Audio Queue Refs
+  const audioQueueRef = useRef<string[]>([]);
+  const isPlayingRef = useRef<boolean>(false);
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Audio Queue Management
+  const playNextChunk = () => {
+    if (isPlayingRef.current || audioQueueRef.current.length === 0) {
+      if (audioQueueRef.current.length === 0) {
+        isPlayingRef.current = false;
+        setAudioPlaying(false);
+      }
+      return;
+    }
+
+    isPlayingRef.current = true;
+    setAudioPlaying(true);
+
+    const audioUrl = audioQueueRef.current.shift();
+    if (!audioUrl) return;
+
+    const audio = new Audio(audioUrl);
+    currentAudioRef.current = audio;
+
+    audio.onended = () => {
+      URL.revokeObjectURL(audioUrl);
+      isPlayingRef.current = false;
+      playNextChunk();
+    };
+
+    audio.onerror = (e) => {
+      console.error("Audio playback error", e);
+      URL.revokeObjectURL(audioUrl);
+      isPlayingRef.current = false;
+      playNextChunk();
+    };
+
+    audio.play().catch((e) => {
+      console.error("Play failed", e);
+      isPlayingRef.current = false;
+      playNextChunk();
+    });
+  };
+
+  const stopAudioPlayback = () => {
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current = null;
+    }
+    audioQueueRef.current.forEach((url) => URL.revokeObjectURL(url));
+    audioQueueRef.current = [];
+    isPlayingRef.current = false;
+    setAudioPlaying(false);
+  };
 
   // Psychologist configuration with enhanced rendering models
   const getPsychologistConfig = (id: string) => {
@@ -352,10 +408,23 @@ const VideoCall: React.FC = () => {
   };
 
   const connectWebSocket = (sessionData: SessionResponse) => {
+    // Prevent double connections or race conditions
+    if (wsRef.current || isConnectingRef.current) {
+      return;
+    }
+
+    isConnectingRef.current = true;
+
+    // Close existing connection if any
+    if (wsRef.current) {
+      wsRef.current.close();
+    }
+
     setConnectionStatus("Connecting to AI service...");
     const ws = new WebSocket(sessionData.ws_url);
 
     ws.onopen = () => {
+      isConnectingRef.current = false;
       setWsConnected(true);
       setConnectionStatus(`Connected to ${psychologistConfig.name}`);
 
@@ -383,6 +452,8 @@ const VideoCall: React.FC = () => {
           setIsAiThinking(true);
           setProcessingStep("AI is thinking...");
           addTranscript("user", message.data.text);
+          // User finished speaking, ensure we are ready for AI response
+          stopAudioPlayback();
           break;
         case "ai_text":
           setIsAiThinking(false);
@@ -390,9 +461,8 @@ const VideoCall: React.FC = () => {
           addTranscript("assistant", message.data.text);
           break;
         case "ai_audio_chunk":
-          setAudioPlaying(true);
           setProcessingStep("");
-          // Play the audio chunk
+          // Queue the audio chunk
           if (message.data.audio_base64 && !speakerMuted) {
             try {
               const audioData = atob(message.data.audio_base64);
@@ -403,21 +473,18 @@ const VideoCall: React.FC = () => {
 
               const audioBlob = new Blob([audioArray], { type: "audio/mp3" });
               const audioUrl = URL.createObjectURL(audioBlob);
-              const audio = new Audio(audioUrl);
 
-              audio.play().catch((e) => console.log("Audio play error:", e));
+              audioQueueRef.current.push(audioUrl);
 
-              // Clean up URL after playing
-              audio.addEventListener("ended", () => {
-                URL.revokeObjectURL(audioUrl);
-              });
+              if (!isPlayingRef.current) {
+                playNextChunk();
+              }
             } catch (error) {
-              console.log("Audio playback error:", error);
+              console.log("Audio processing error:", error);
             }
           }
           break;
         case "tts_complete":
-          setAudioPlaying(false);
           setProcessingStep("");
           // AI finished speaking, now patient can speak
           if (conversationActive && wsConnected) {
@@ -428,13 +495,21 @@ const VideoCall: React.FC = () => {
     };
 
     ws.onclose = () => {
-      setWsConnected(false);
-      setConnectionStatus("Disconnected from AI service");
+      isConnectingRef.current = false;
+      // Only update state if this is the current socket
+      if (wsRef.current === ws) {
+        setWsConnected(false);
+        setConnectionStatus("Disconnected from AI service");
+        stopAudioPlayback();
+      }
     };
 
     ws.onerror = (error) => {
-      setWsConnected(false);
-      setConnectionStatus("Connection error");
+      isConnectingRef.current = false;
+      if (wsRef.current === ws) {
+        setWsConnected(false);
+        setConnectionStatus("Connection error");
+      }
     };
 
     wsRef.current = ws;

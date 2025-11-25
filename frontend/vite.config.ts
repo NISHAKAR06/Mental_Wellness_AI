@@ -8,9 +8,9 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
 
   // Get environment variables with fallbacks
-  const wsBaseUrl = env.VITE_WS_BASE_URL || (mode === 'production' ? 'wss://ai-psychologist-service.onrender.com' : 'ws://localhost:8001');
+  const wsBaseUrl = env.VITE_WS_BASE_URL || (mode === 'production' ? 'wss://ai-psychologist-service.onrender.com' : 'ws://localhost:8003');
   const apiBaseUrl = env.VITE_API_BASE_URL || (mode === 'production' ? 'https://mental-wellness-ai-backend.onrender.com' : 'http://localhost:8000');
-  const fastApiUrl = env.VITE_FASTAPI_URL || (mode === 'production' ? 'https://ai-psychologist-service.onrender.com' : 'http://localhost:8001');
+  const fastApiUrl = env.VITE_FASTAPI_URL || (mode === 'production' ? 'https://ai-psychologist-service.onrender.com' : 'http://localhost:8003');
 
   return {
     server: {
