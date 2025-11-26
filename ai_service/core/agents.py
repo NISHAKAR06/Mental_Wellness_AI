@@ -33,9 +33,17 @@ class AgentConfig:
 
         context = f"\nRelevant context:\n{rag_context}" if rag_context else ""
 
+        # Map language code to full name for clearer LLM instruction
+        lang_name = "English"
+        if "hi" in lang.lower():
+            lang_name = "Hindi"
+        elif "ta" in lang.lower():
+            lang_name = "Tamil"
+
         return f"""{self.system_prompt}
 {self.safety_prompt}
-Language: {lang}. Keep replies short (1–3 sentences, ~6–12s). {tips}{context}"""
+IMPORTANT INSTRUCTION: The user has selected {lang_name} as their preferred language. You MUST reply in {lang_name} ONLY. Even if the user speaks in English or another language, you must translate your response and speak ONLY in {lang_name}. Do not switch languages.
+Keep replies short (1–3 sentences, ~6–12s). {tips}{context}"""
 
 _cache: Dict[str, AgentConfig] = {}
 

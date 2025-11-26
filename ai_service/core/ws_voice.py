@@ -237,10 +237,13 @@ class WebSocketVoiceHandler:
                 print(f"🎉 AI Conference session initialized: {agent_config.name}")
 
                 # Send initial greeting from AI agent (AI speaks first in video call)
-                initial_greeting = getattr(agent_config, 'initial_greeting', None) or \
-                    f"Hello! I'm {agent_config.name}, your AI {agent_config.domain} specialist. " \
-                    f"I'm here to support you today. How are you feeling?"
-                    
+                greetings = {
+                    'en-IN': f"Hello! I'm {agent_config.name}, your AI {agent_config.domain} specialist. I'm here to support you today. How are you feeling?",
+                    'hi-IN': f"नमस्ते! मैं {agent_config.name} हूँ। मैं आज आपकी मदद करने के लिए यहाँ हूँ। आप कैसा महसूस कर रहे हैं?",
+                    'ta-IN': f"வணக்கம்! நான் {agent_config.name}. இன்று உங்களுக்கு உதவ நான் இங்கு இருக்கிறேன். நீங்கள் எப்படி உணர்கிறீர்கள்?"
+                }
+                initial_greeting = getattr(agent_config, 'initial_greeting', None) or greetings.get(lang, greetings['en-IN'])
+
                 print(f"🎤 AI Agent speaking first: {initial_greeting[:50]}...")
                 await self._generate_ai_response_and_stream(websocket, session_id, initial_greeting)
 
@@ -382,10 +385,13 @@ class WebSocketVoiceHandler:
                 print(f"🎉 AI Conference session initialized: {agent_config.name}")
 
                 # Send initial greeting from AI agent (AI speaks first in video call)
-                initial_greeting = getattr(agent_config, 'initial_greeting', None) or \
-                    f"Hello! I'm {agent_config.name}, your AI {agent_config.domain} specialist. " \
-                    f"I'm here to support you today. How are you feeling?"
-                    
+                greetings = {
+                    'en-IN': f"Hello! I'm {agent_config.name}, your AI {agent_config.domain} specialist. I'm here to support you today. How are you feeling?",
+                    'hi-IN': f"नमस्ते! मैं {agent_config.name} हूँ। मैं आज आपकी मदद करने के लिए यहाँ हूँ। आप कैसा महसूस कर रहे हैं?",
+                    'ta-IN': f"வணக்கம்! நான் {agent_config.name}. இன்று உங்களுக்கு உதவ நான் இங்கு இருக்கிறேன். நீங்கள் எப்படி உணர்கிறீர்கள்?"
+                }
+                initial_greeting = getattr(agent_config, 'initial_greeting', None) or greetings.get(lang, greetings['en-IN'])
+
                 print(f"🎤 AI Agent speaking first: {initial_greeting[:50]}...")
                 await self._generate_ai_response_and_stream(websocket, session_id, initial_greeting)
 
