@@ -7,6 +7,7 @@ from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 import os
 from dotenv import load_dotenv
+from pathlib import Path
 
 # Ultra-simple imports for Docker deployment
 import sys
@@ -24,6 +25,8 @@ if core_dir not in sys.path:
     sys.path.insert(0, core_dir)
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
+
+load_dotenv(dotenv_path=Path(current_dir) / '.env')
 
 # Direct imports with graceful fallback
 try:
@@ -83,8 +86,6 @@ try:
 except ImportError as e:
     print(f"⚠️ Emotion integration not available: {e}")
     EmotionIntegrator = None
-
-load_dotenv()
 
 app = FastAPI(
     title="AI Psychologist Service",

@@ -13,7 +13,7 @@ import json
 import jwt
 from datetime import datetime, timedelta
 import google.generativeai as genai
-from .models import Agent, VoiceSession, SafetyAlert, UserProfile
+from .models import Agent, VoiceSession, SafetyAlert, UserProfile, EmotionSession
 from .serializers import RegisterSerializer, UserSerializer, AgentSerializer, VoiceSessionSerializer, SafetyAlertSerializer
 
 # Configure the Gemini API key
@@ -276,6 +276,123 @@ def summarize_session(request):
         except Exception as e:
             print(f"An error occurred during Gemini API call: {e}")
             return JsonResponse({'error': f'Gemini API error: {str(e)}'}, status=500)
+    else:
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+# Emotion API Endpoints
+
+@csrf_exempt
+def save_emotion_data(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            session_id = data.get('session_id')
+            emotions = data.get('emotions', {})
+
+            if not session_id:
+                return JsonResponse({'error': 'session_id is required'}, status=400)
+
+            try:
+                session = VoiceSession.objects.get(session_id=session_id)
+            except VoiceSession.DoesNotExist:
+                return JsonResponse({'error': 'Session not found'}, status=404)
+
+            # Create emotion record
+            EmotionSession.objects.create(
+                session=session,
+                happy=emotions.get('happy', 0.0),
+                neutral=emotions.get('neutral', 0.0),
+                anxious=emotions.get('anxious', 0.0),
+                stressed=emotions.get('stressed', 0.0),
+                sad=emotions.get('sad', 0.0),
+                angry=emotions.get('angry', 0.0),
+                fearful=emotions.get('fearful', 0.0),
+                disgusted=emotions.get('disgusted', 0.0),
+                surprised=emotions.get('surprised', 0.0)
+            )
+
+            return JsonResponse({'message': 'Emotion data saved'})
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    else:
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+@csrf_exempt
+def get_latest_emotion(request, user_id):
+    if request.method == 'GET':
+        try:
+            # Find the latest active session for this user
+            # In a real app, we might want to be more specific about "active"
+            # For now, get the most recent session
+            session = VoiceSession.objects.filter(user_id=user_id).order_by('-started_at').first()
+            
+            if not session:
+                return JsonResponse({'error': 'No session found for user'}, status=404)
+
+            # Get latest emotion for this session
+            latest_emotion = EmotionSession.objects.filter(session=session).order_by('-timestamp').first()
+
+            if not latest_emotion:
+                return JsonResponse({'error': 'No emotion data found'}, status=404)
+
+            return JsonResponse({
+                'emotion': {
+                    'happy': latest_emotion.happy,
+                    'neutral': latest_emotion.neutral,
+                    'anxious': latest_emotion.anxious,
+                    'stressed': latest_emotion.stressed,
+                    'sad': latest_emotion.sad,
+                    'angry': latest_emotion.angry,
+                    'fearful': latest_emotion.fearful,
+                    'disgusted': latest_emotion.disgusted,
+                    'surprised': latest_emotion.surprised,
+                    'timestamp': latest_emotion.timestamp.isoformat(),
+                    'session_id': str(session.session_id)
+                }
+            })
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    else:
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+@csrf_exempt
+def get_emotion_history(request, user_id):
+    if request.method == 'GET':
+        try:
+            since = request.GET.get('since')
+            
+            session = VoiceSession.objects.filter(user_id=user_id).order_by('-started_at').first()
+            if not session:
+                return JsonResponse({'error': 'No session found'}, status=404)
+
+            query = EmotionSession.objects.filter(session=session)
+            
+            if since:
+                query = query.filter(timestamp__gte=since)
+                
+            emotions = query.order_by('timestamp')[:50] # Limit to last 50 points
+            
+            data = []
+            for e in emotions:
+                data.append({
+                    'happy': e.happy,
+                    'neutral': e.neutral,
+                    'anxious': e.anxious,
+                    'stressed': e.stressed,
+                    'sad': e.sad,
+                    'angry': e.angry,
+                    'fearful': e.fearful,
+                    'disgusted': e.disgusted,
+                    'surprised': e.surprised,
+                    'timestamp': e.timestamp.isoformat()
+                })
+                
+            return JsonResponse({'emotions': data})
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
     else:
         return JsonResponse({'error': 'Invalid request method'}, status=405)
 

@@ -179,6 +179,14 @@ const VideoCall: React.FC = () => {
     };
   }, []);
 
+  // Ensure emotion analysis starts when both video and face detection are ready
+  useEffect(() => {
+    if (videoEnabled && faceDetectionReady) {
+      console.log("[EmotionAnalysis] useEffect: Both videoEnabled and faceDetectionReady are true. Starting emotion analysis.");
+      startVideoAndAnalysis();
+    }
+  }, [videoEnabled, faceDetectionReady]);
+
   const stopVideoStreams = () => {
     [analysisVideoRef.current, previewVideoRef.current].forEach((videoEl) => {
       if (videoEl && videoEl.srcObject) {
@@ -191,7 +199,7 @@ const VideoCall: React.FC = () => {
 
   const stopEmotionAnalysis = () => {
     if (emotionIntervalRef.current) {
-      clearInterval(emotionIntervalRef.current);
+      clearTimeout(emotionIntervalRef.current);
       emotionIntervalRef.current = null;
     }
   };
@@ -199,39 +207,46 @@ const VideoCall: React.FC = () => {
   // Initialize face detection models (optional - won't block app if fails)
   const initializeFaceDetection = async () => {
     try {
-      console.log("Initializing face detection (optional)...");
+      console.log("Initializing face detection...");
+      const modelUrl = window.location.origin + "/models";
+      console.log(`Loading models from: ${modelUrl}`);
 
-      // Check if models directory exists first
-      const modelPaths = [
-        "/models/tiny_face_detector_model-weights_manifest.json",
-        "/models/face_landmark_68_model-weights_manifest.json",
-        "/models/face_recognition_model-weights_manifest.json",
-        "/models/face_expression_model-weights_manifest.json",
-      ];
-
-      const responses = await Promise.allSettled(
-        modelPaths.map((path) => fetch(path, { method: "HEAD" }))
-      );
-
-      const missingModels = responses.filter(
-        (r) => r.status === "rejected"
-      ).length;
-
-      if (missingModels > 0) {
-        console.warn(
-          "Face detection models not found. Skipping face analysis."
-        );
-        setFaceDetectionReady(false);
-        return;
+      // Load models sequentially with individual error handling
+      try {
+        if (!faceapi.nets.tinyFaceDetector.params) {
+          console.log("Loading TinyFaceDetector...");
+          await faceapi.nets.tinyFaceDetector.loadFromUri(modelUrl);
+        }
+      } catch (e) {
+        throw new Error(`TinyFaceDetector failed: ${e}`);
       }
 
-      // Try to load models if they exist
-      await Promise.all([
-        faceapi.nets.tinyFaceDetector.loadFromUri("/models"),
-        faceapi.nets.faceLandmark68Net.loadFromUri("/models"),
-        faceapi.nets.faceRecognitionNet.loadFromUri("/models"),
-        faceapi.nets.faceExpressionNet.loadFromUri("/models"),
-      ]);
+      try {
+        if (!faceapi.nets.faceLandmark68Net.params) {
+          console.log("Loading FaceLandmark68Net...");
+          await faceapi.nets.faceLandmark68Net.loadFromUri(modelUrl);
+        }
+      } catch (e) {
+        throw new Error(`FaceLandmark68Net failed: ${e}`);
+      }
+
+      try {
+        if (!faceapi.nets.faceRecognitionNet.params) {
+          console.log("Loading FaceRecognitionNet...");
+          await faceapi.nets.faceRecognitionNet.loadFromUri(modelUrl);
+        }
+      } catch (e) {
+        throw new Error(`FaceRecognitionNet failed: ${e}`);
+      }
+
+      try {
+        if (!faceapi.nets.faceExpressionNet.params) {
+          console.log("Loading FaceExpressionNet...");
+          await faceapi.nets.faceExpressionNet.loadFromUri(modelUrl);
+        }
+      } catch (e) {
+        throw new Error(`FaceExpressionNet failed: ${e}`);
+      }
 
       setFaceDetectionReady(true);
       console.log("✅ Face detection models loaded successfully");
@@ -241,7 +256,9 @@ const VideoCall: React.FC = () => {
         startVideoAndAnalysis();
       }
     } catch (error: any) {
+      console.error("❌ Face detection initialization failed:", error);
       console.warn("⚠️ Face detection unavailable:", error.message);
+      // Don't show alert, just log
       setFaceDetectionReady(false);
 
       if (videoEnabled) {
@@ -253,6 +270,7 @@ const VideoCall: React.FC = () => {
   // Start video and emotion analysis with enhanced error handling
   const startVideoAndAnalysis = async () => {
     try {
+      console.log("[EmotionAnalysis] startVideoAndAnalysis called. videoEnabled:", videoEnabled, "faceDetectionReady:", faceDetectionReady);
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { width: 640, height: 480 },
         audio: false, // Audio handled separately
@@ -260,23 +278,29 @@ const VideoCall: React.FC = () => {
 
       if (analysisVideoRef.current) {
         analysisVideoRef.current.srcObject = stream;
+        console.log("[EmotionAnalysis] analysisVideoRef stream set.");
       }
 
       if (previewVideoRef.current) {
         previewVideoRef.current.srcObject = stream;
+        console.log("[EmotionAnalysis] previewVideoRef stream set.");
       }
 
       stopEmotionAnalysis();
 
       // Only start emotion analysis if face detection is ready
       if (faceDetectionReady) {
-        console.log("🎭 Starting emotion analysis with rendering player...");
-        emotionIntervalRef.current = setInterval(async () => {
+        console.log("🎭 Starting emotion analysis with rendering player... (videoEnabled:", videoEnabled, ")");
+
+        const analyzeEmotion = async () => {
+          console.log("[EmotionAnalysis] analyzeEmotion loop running. videoEnabled:", videoEnabled, "faceDetectionReady:", faceDetectionReady);
           try {
             if (
               faceDetectionReady &&
               analysisVideoRef.current &&
-              canvasRef.current
+              canvasRef.current &&
+              !analysisVideoRef.current.paused &&
+              !analysisVideoRef.current.ended
             ) {
               const detections = await faceapi
                 .detectAllFaces(
@@ -301,26 +325,63 @@ const VideoCall: React.FC = () => {
                 };
 
                 setEmotionData(emotionSnapshot);
+                console.log("[EmotionAnalysis] Emotion detected:", emotionSnapshot);
                 // Send to backend for analysis (with error handling)
                 await sendEmotionData(emotionSnapshot);
+
+                // Also send via WebSocket for real-time voice response integration
+                if (
+                  wsRef.current &&
+                  wsRef.current.readyState === WebSocket.OPEN
+                ) {
+                  wsRef.current.send(
+                    JSON.stringify({
+                      type: "emotion_update",
+                      data: emotionSnapshot,
+                    })
+                  );
+                  console.log("[EmotionAnalysis] Emotion sent via WebSocket.");
+                }
+              } else {
+                console.log("[EmotionAnalysis] No face detected.");
               }
+            } else {
+              // Detailed debug for which ref/state is not ready
+              console.log("[EmotionAnalysis] Skipping detection: refs or state not ready.");
+              console.log("  faceDetectionReady:", faceDetectionReady);
+              console.log("  analysisVideoRef.current:", analysisVideoRef.current);
+              if (analysisVideoRef.current) {
+                console.log("    paused:", analysisVideoRef.current.paused);
+                console.log("    ended:", analysisVideoRef.current.ended);
+              }
+              console.log("  canvasRef.current:", canvasRef.current);
             }
           } catch (emotionError) {
             console.warn(
               "⚠️ Emotion analysis error (non-critical):",
               emotionError
             );
-            // Don't break the interval, just log the error
+          } finally {
+            // Schedule next analysis
+            if (videoEnabled) {
+              emotionIntervalRef.current = setTimeout(analyzeEmotion, 2000);
+            } else {
+              console.log("[EmotionAnalysis] videoEnabled is false, stopping analysis loop.");
+            }
           }
-        }, 2000);
+        };
+
+        // Start the loop
+        analyzeEmotion();
       } else {
         console.log(
-          "⚠️ Face detection not available, skipping emotion analysis"
+          "⚠️ Face detection not available, skipping emotion analysis (videoEnabled:", videoEnabled, ", faceDetectionReady:", faceDetectionReady, ")"
         );
       }
     } catch (error) {
       console.error("❌ Error starting video:", error);
       setVideoEnabled(false);
+      alert("Could not access camera. Please check permissions.");
       // Ensure emotion monitoring doesn't cause issues
       stopEmotionAnalysis();
     }
@@ -456,9 +517,16 @@ const VideoCall: React.FC = () => {
           stopAudioPlayback();
           break;
         case "ai_text":
+          setIsProcessingVoice(false);
           setIsAiThinking(false);
           setProcessingStep("Generating voice response...");
           addTranscript("assistant", message.data.text);
+          break;
+        case "error":
+          setIsProcessingVoice(false);
+          setIsAiThinking(false);
+          setProcessingStep("Error occurred");
+          console.error("AI Service Error:", message.message);
           break;
         case "ai_audio_chunk":
           setProcessingStep("");
@@ -490,6 +558,11 @@ const VideoCall: React.FC = () => {
           if (conversationActive && wsConnected) {
             console.log("🎤 AI finished speaking - patient can now speak");
           }
+          break;
+        case "stop_tts":
+          console.log("🛑 Received stop_tts signal");
+          stopAudioPlayback();
+          setProcessingStep("");
           break;
       }
     };
@@ -554,11 +627,18 @@ const VideoCall: React.FC = () => {
   };
 
   const toggleRecording = () => {
-    if (!conversationActive || audioPlaying) {
-      console.log(
-        "🚫 Cannot record: conversation not active or AI is speaking"
-      );
+    if (!conversationActive) {
+      console.log("🚫 Cannot record: conversation not active");
       return;
+    }
+
+    // Allow barge-in: if AI is speaking, stop it and start recording
+    if (audioPlaying) {
+      console.log("🛑 Barge-in triggered: Stopping AI audio");
+      stopAudioPlayback();
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({ type: "barge_in" }));
+      }
     }
 
     if (recording) {

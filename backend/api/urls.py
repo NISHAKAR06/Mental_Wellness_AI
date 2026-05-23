@@ -32,4 +32,9 @@ urlpatterns = [
     path('end-session/', views.end_session, name='end_session_legacy'),  # legacy
     # Safety alerts (internal use)
     path('alerts/', views.create_safety_alert, name='create_safety_alert'),  # legacy
+
+    # Emotion endpoints
+    path('emotions/', views.save_emotion_data, name='save_emotion'),
+    path('emotions/<int:user_id>/latest/', views.get_latest_emotion, name='get_latest_emotion'),
+    path('emotions/<int:user_id>/history/', views.get_emotion_history, name='get_emotion_history'),
 ]

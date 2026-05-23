@@ -13,7 +13,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Configure Gemini API
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+_gemini_api_key = os.getenv("GEMINI_API_KEY")
+if _gemini_api_key:
+    genai.configure(api_key=_gemini_api_key)
+
+REAL_GEMINI_ENABLED = os.getenv("ENABLE_REAL_GEMINI", "true").lower() == "true"
 
 class RiskClassifier:
     def __init__(self):
@@ -41,6 +45,10 @@ class RiskClassifier:
                 return pattern_result
 
             # Use Gemini for classification
+            if not REAL_GEMINI_ENABLED or not _gemini_api_key:
+                print("⚠️ Gemini disabled or unavailable, using pattern matching only")
+                return self._quick_pattern_check(text)
+
             prompt = f"""Analyze the following user message for mental health risk.
 Return only JSON in this exact format:
 {{
@@ -58,7 +66,7 @@ Risk levels:
 - high: immediate danger, active self-harm intent, severe crisis"""
 
             # List of models to try for risk classification
-            models_to_try = ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash", "gemini-pro"]
+            models_to_try = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash", "gemini-flash-latest", "gemini-pro-latest"]
             
             response = None
             

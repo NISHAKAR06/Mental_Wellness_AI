@@ -22,7 +22,7 @@ else:
 
 class LLMHandler:
     def __init__(self):
-        self.model_name = "gemini-1.5-flash"
+        self.model_name = "gemini-2.5-flash"
         self.generation_config = GenerationConfig(
             temperature=0.4,
             max_output_tokens=250,  # Keep responses short
@@ -78,7 +78,7 @@ class LLMHandler:
             })
 
             # List of models to try in order of preference
-            models_to_try = ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash", "gemini-pro"]
+            models_to_try = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash", "gemini-flash-latest", "gemini-pro-latest"]
             
             response = None
             last_error = None
@@ -139,7 +139,7 @@ class LLMHandler:
                     except Exception as list_err:
                         print(f"Could not list models: {list_err}")
                         
-                return "I'm having trouble connecting to my brain right now. Please check my configuration.", {"error": str(last_error)}
+                return self._offline_fallback_reply(user_text, emotion_snapshot), {"error": str(last_error), "response_type": "fallback"}
 
             # Safely extract text
             reply_text = ""
@@ -161,29 +161,71 @@ class LLMHandler:
 
         except Exception as e:
             print(f"Error generating reply: {e}")
-            return "I'm sorry, I encountered an error processing your message. Please try again.", {"error": str(e)}
+            return self._offline_fallback_reply(user_text, emotion_snapshot), {"error": str(e), "response_type": "fallback"}
 
     def _format_emotion_context(self, emotion_snapshot: Dict[str, float]) -> str:
         """Format emotion data into contextual prompt text"""
         if not emotion_snapshot:
             return ""
 
-        # Check for high anxiety/stress
-        anxious = emotion_snapshot.get('anxious', 0)
-        stressed = emotion_snapshot.get('stressed', 0)
-        happy = emotion_snapshot.get('happy', 0)
-        neutral = emotion_snapshot.get('neutral', 0)
+        # Create a detailed summary of the emotional state
+        emotions_list = []
+        normalized_snapshot: Dict[str, float] = {}
+        for emotion, score in emotion_snapshot.items():
+            try:
+                score_value = float(score)
+            except (TypeError, ValueError):
+                continue
 
-        if anxious + stressed > 0.6:
-            return "Emotional context: User appears stressed or anxious - consider offering calming techniques first."
+            normalized_snapshot[emotion] = score_value
+            if score_value > 0.1:  # Only include significant emotions
+                emotions_list.append(f"{emotion}: {score_value:.2f}")
+        
+        emotion_str = ", ".join(emotions_list)
+        
+        # Determine dominant emotion
+        dominant_emotion = max(normalized_snapshot.items(), key=lambda x: x[1])[0] if normalized_snapshot else "neutral"
+        
+        context_msg = f"VISUAL OBSERVATION: The user's facial expression indicates the following emotions: [{emotion_str}]. The dominant emotion is '{dominant_emotion}'."
+        
+        # Add specific guidance based on dominant emotion
+        if dominant_emotion in ['sad', 'sadness']:
 
-        if happy > 0.7 and neutral < 0.3:
-            return "Emotional context: User appears positive and engaged."
+            context_msg += " VISUAL OBSERVATION: User looks sad. Use this as context, but prioritize their spoken words."
+        elif dominant_emotion in ['angry', 'anger']:
+            context_msg += " VISUAL OBSERVATION: User looks angry. Keep this in mind while responding to their words."
+        elif dominant_emotion in ['fear', 'fearful', 'anxious']:
+            context_msg += " VISUAL OBSERVATION: User looks anxious. Be gentle, but focus on what they are saying."
+        elif dominant_emotion in ['happy', 'happiness']:
+            context_msg += " VISUAL OBSERVATION: User looks happy."
+        elif dominant_emotion in ['neutral']:
+            context_msg += " VISUAL OBSERVATION: User expression is neutral."
+            
+        return context_msg
 
-        if stressed > 0.5:
-            return "Emotional context: User appears somewhat stressed - pay extra attention to gentle communication."
+    def _offline_fallback_reply(self, user_text: str, emotion_snapshot: Optional[Dict[str, float]] = None) -> str:
+        """Generate a local response when Gemini is unavailable or quota-limited."""
+        text = user_text.lower()
 
-        return ""
+        if any(term in text for term in ["suicide", "kill myself", "harm myself", "end it"]):
+            return "I'm very concerned about your safety. If you might act on these thoughts, call emergency services or a trusted person right now."
+
+        if any(term in text for term in ["anxious", "anxiety", "stressed", "stress", "overwhelmed"]):
+            return "That sounds overwhelming. Let's slow it down and focus on the one part that feels hardest right now."
+
+        if any(term in text for term in ["sad", "depressed", "down", "hopeless"]):
+            return "I'm sorry this feels heavy. We can keep this simple and work through one small step at a time."
+
+        if emotion_snapshot:
+            try:
+                normalized = {k: float(v) for k, v in emotion_snapshot.items() if v is not None}
+                dominant = max(normalized.items(), key=lambda item: item[1])[0] if normalized else "neutral"
+                if dominant in ["sad", "fearful", "angry", "anxious"]:
+                    return "I'm noticing distress in what you're sharing. We can take this one step at a time and focus on what feels most urgent."
+            except Exception:
+                pass
+
+        return "I'm here with you. Tell me what has been on your mind most, and we'll take it one step at a time."
 
     def _check_function_trigger(self, user_text: str, function_schemas: List[Dict]) -> Optional[Dict]:
         """Check if user text triggers a function call using simple heuristics"""

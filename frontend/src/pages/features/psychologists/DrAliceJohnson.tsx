@@ -74,6 +74,7 @@ const DrAliceJohnson: React.FC = () => {
   ];
 
   // Load face-api.js models and start video/emotion analysis
+  /* 
   useEffect(() => {
     const loadModelsAndStart = async () => {
       try {
@@ -159,6 +160,7 @@ const DrAliceJohnson: React.FC = () => {
       }
     };
   }, []);
+  */
 
   const startSession = async () => {
     // Redirect to video call page with psychologist and language parameters
@@ -250,13 +252,14 @@ const DrAliceJohnson: React.FC = () => {
 
       mediaRecorder.ondataavailable = async (event) => {
         if (event.data.size > 0) {
-          const apiBaseUrl = import.meta.env.VITE_FASTAPI_URL || 'http://localhost:8001';
+          const apiBaseUrl =
+            import.meta.env.VITE_FASTAPI_URL || "http://localhost:8001";
           const formData = new FormData();
-          formData.append('audio_chunk', event.data, 'chunk.webm');
+          formData.append("audio_chunk", event.data, "chunk.webm");
           try {
             const resp = await fetch(`${apiBaseUrl}/stream/stt`, {
-              method: 'POST',
-              body: formData
+              method: "POST",
+              body: formData,
             });
             if (resp.ok) {
               const data = await resp.json();
@@ -271,7 +274,7 @@ const DrAliceJohnson: React.FC = () => {
       };
 
       mediaRecorder.onstop = () => {
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach((track) => track.stop());
       };
 
       mediaRecorder.start(200); // 200ms chunks
@@ -383,22 +386,27 @@ const DrAliceJohnson: React.FC = () => {
         {/* Real-time emotion graph (simple bar) */}
         {emotionData && (
           <div className="fixed top-24 left-4 bg-white bg-opacity-80 rounded-lg p-2 shadow z-50 w-56">
-            <div className="text-xs font-semibold mb-1 text-gray-700">Emotion Graph</div>
+            <div className="text-xs font-semibold mb-1 text-gray-700">
+              Emotion Graph
+            </div>
             {["happy", "neutral", "sad"].map((emo) => (
               <div key={emo} className="flex items-center mb-1">
                 <span className="w-10 capitalize text-gray-600">{emo}</span>
                 <div className="flex-1 bg-gray-200 rounded h-2 mx-2">
                   <div
-                    className={`h-2 rounded ${emo === "happy"
-                      ? "bg-green-400"
-                      : emo === "neutral"
-                      ? "bg-blue-300"
-                      : "bg-yellow-400"
+                    className={`h-2 rounded ${
+                      emo === "happy"
+                        ? "bg-green-400"
+                        : emo === "neutral"
+                        ? "bg-blue-300"
+                        : "bg-yellow-400"
                     }`}
                     style={{ width: `${(emotionData[emo] * 100).toFixed(0)}%` }}
                   ></div>
                 </div>
-                <span className="w-8 text-right text-gray-700">{(emotionData[emo] * 100).toFixed(0)}%</span>
+                <span className="w-8 text-right text-gray-700">
+                  {(emotionData[emo] * 100).toFixed(0)}%
+                </span>
               </div>
             ))}
           </div>

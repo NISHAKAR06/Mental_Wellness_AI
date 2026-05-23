@@ -81,10 +81,15 @@ class SafetyAlert(models.Model):
 
 class EmotionSession(models.Model):
     session = models.ForeignKey(VoiceSession, on_delete=models.CASCADE, related_name='emotions')
-    happy = models.FloatField()
-    neutral = models.FloatField()
-    anxious = models.FloatField()
-    stressed = models.FloatField()
+    happy = models.FloatField(default=0.0)
+    neutral = models.FloatField(default=0.0)
+    anxious = models.FloatField(default=0.0)
+    stressed = models.FloatField(default=0.0)
+    sad = models.FloatField(default=0.0)
+    angry = models.FloatField(default=0.0)
+    fearful = models.FloatField(default=0.0)
+    disgusted = models.FloatField(default=0.0)
+    surprised = models.FloatField(default=0.0)
     timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

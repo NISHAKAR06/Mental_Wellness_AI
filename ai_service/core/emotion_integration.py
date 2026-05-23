@@ -18,6 +18,11 @@ class EmotionSnapshot:
         self.neutral = data.get('neutral', 0.0)
         self.anxious = data.get('anxious', 0.0)
         self.stressed = data.get('stressed', 0.0)
+        self.sad = data.get('sad', 0.0)
+        self.angry = data.get('angry', 0.0)
+        self.fearful = data.get('fearful', 0.0)
+        self.disgusted = data.get('disgusted', 0.0)
+        self.surprised = data.get('surprised', 0.0)
         self.timestamp = data.get('timestamp') or datetime.utcnow()
         self.session_id = data.get('session_id')
 
@@ -27,7 +32,12 @@ class EmotionSnapshot:
             'happy': float(self.happy),
             'neutral': float(self.neutral),
             'anxious': float(self.anxious),
-            'stressed': float(self.stressed)
+            'stressed': float(self.stressed),
+            'sad': float(self.sad),
+            'angry': float(self.angry),
+            'fearful': float(self.fearful),
+            'disgusted': float(self.disgusted),
+            'surprised': float(self.surprised)
         }
 
     def get_dominant_emotion(self) -> str:
@@ -36,7 +46,12 @@ class EmotionSnapshot:
             ('happy', self.happy),
             ('neutral', self.neutral),
             ('anxious', self.anxious),
-            ('stressed', self.stressed)
+            ('stressed', self.stressed),
+            ('sad', self.sad),
+            ('angry', self.angry),
+            ('fearful', self.fearful),
+            ('disgusted', self.disgusted),
+            ('surprised', self.surprised)
         ]
 
         # Sort by intensity and return highest
@@ -46,11 +61,11 @@ class EmotionSnapshot:
     def get_stress_level(self) -> float:
         """Calculate overall stress level from emotion data"""
         # Weighted stress calculation
-        # Higher weight on anxious and stressed emotions
-        return (self.anxious * 0.6) + (self.stressed * 0.4)
+        # Higher weight on anxious, stressed, fearful, angry
+        return (self.anxious * 0.6) + (self.stressed * 0.4) + (self.fearful * 0.5) + (self.angry * 0.5) + (self.sad * 0.3)
 
     def __str__(self):
-        return f"Emotions: H:{self.happy:.2f} N:{self.neutral:.2f} A:{self.anxious:.2f} S:{self.stressed:.2f}"
+        return f"Emotions: H:{self.happy:.2f} N:{self.neutral:.2f} A:{self.anxious:.2f} S:{self.stressed:.2f} Sa:{self.sad:.2f}"
 
 class EmotionIntegrator:
     """
@@ -136,10 +151,10 @@ class EmotionIntegrator:
 
             # Average emotions across period
             avg_emotions = {
-                'happy': sum(EotionSnapshot(e).happy for e in emotion_history) / sample_count,
-                'neutral': sum(EotionSnapshot(e).neutral for e in emotion_history) / sample_count,
-                'anxious': sum(EotionSnapshot(e).anxious for e in emotion_history) / sample_count,
-                'stressed': sum(EotionSnapshot(e).stressed for e in emotion_history) / sample_count
+                'happy': sum(EmotionSnapshot(e).happy for e in emotion_history) / sample_count,
+                'neutral': sum(EmotionSnapshot(e).neutral for e in emotion_history) / sample_count,
+                'anxious': sum(EmotionSnapshot(e).anxious for e in emotion_history) / sample_count,
+                'stressed': sum(EmotionSnapshot(e).stressed for e in emotion_history) / sample_count
             }
 
             return {

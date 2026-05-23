@@ -16,6 +16,7 @@ import os
 from dotenv import load_dotenv
 import io
 import hashlib
+from pathlib import Path
 
 # Import directly since this may be run as a script, not a package
 import sys
@@ -26,6 +27,8 @@ current_dir = os.path.dirname(__file__)
 parent_dir = os.path.dirname(current_dir)
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
+
+load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / '.env')
 
 try:
     from core.agents import get_agent
@@ -70,8 +73,6 @@ FALLBACK_TO_DEMO_VOICE = os.getenv("FALLBACK_TO_DEMO_VOICE", "true").lower() == 
 print(f"🎤 Real STT enabled: {ENABLE_REAL_SPEECH_TO_TEXT}")
 print(f"🔊 Real TTS enabled: {ENABLE_REAL_TEXT_TO_SPEECH}")
 print(f"🎭 Demo voice fallback: {FALLBACK_TO_DEMO_VOICE}")
-
-load_dotenv()
 
 class WebSocketVoiceHandler:
     """
@@ -450,6 +451,15 @@ class WebSocketVoiceHandler:
             await self._handle_barge_in(websocket, session_id)
         elif message_type == 'end_session':
             await self._end_session_gracefully(websocket, session_id)
+        elif message_type == 'emotion_update':
+            # Handle real-time emotion updates from frontend
+            emotion_data = message.get('data')
+            if emotion_data and session_id in self.emotion_integrators:
+                # Update the emotion integrator with new data
+                # We can manually inject it or just rely on the fact that we have the data now
+                # Ideally EmotionIntegrator should have an update method, but for now let's store it in session
+                self.active_sessions[session_id]['latest_emotion'] = emotion_data
+                print(f"😊 Emotion update received for session {session_id}: {emotion_data.get('happy', 0):.2f} happy")
         else:
             print(f"Unknown message type: {message_type}")
 
@@ -499,10 +509,8 @@ class WebSocketVoiceHandler:
             user_text = await self._speech_to_text(combined_audio, lang)
 
             if not user_text:
-                await websocket.send_json({
-                    "type": "error",
-                    "message": "Speech recognition failed"
-                })
+                print(f"⚠️ STT returned no text for session {session_id}, checking for visual cues...")
+                await self._handle_no_speech(websocket, session_id)
                 return
 
             # Send recognized text back to client
@@ -539,7 +547,13 @@ class WebSocketVoiceHandler:
 
             # Step 4: Get emotion snapshot if available
             emotion_snapshot = None
-            if session_id in self.emotion_integrators:
+            
+            # First check if we have a direct WebSocket update
+            if 'latest_emotion' in self.active_sessions[session_id]:
+                emotion_snapshot = self.active_sessions[session_id]['latest_emotion']
+                print(f"🎭 Using real-time emotion data from WebSocket: {emotion_snapshot}")
+            # Fallback to integrator if available
+            elif session_id in self.emotion_integrators:
                 emotion_snapshot = self.emotion_integrators[session_id].get_latest_emotions()
 
             # Step 5: Get memory context
@@ -794,12 +808,15 @@ class WebSocketVoiceHandler:
                 print("✅ Using Real Google Cloud TTS")
                 # Use Google TTS for production
                 try:
-                    # Set up Google Cloud credentials
-                    import os
-                    creds_path = os.path.join(os.path.dirname(__file__), '..', 'hip-wharf-473408-m8-5c0e43084eef.json')
+                    # Set up Google Cloud credentials from environment or local default
+                    creds_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+                    if not creds_path:
+                        creds_path = os.path.join(os.path.dirname(__file__), '..', 'crafty-centaur-467514-r3-d220951b4070.json')
                     if os.path.exists(creds_path):
                         os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = creds_path
                         print(f"✅ Google Cloud credentials set: {creds_path}")
+                    else:
+                        print(f"⚠️ Google Cloud credentials file not found: {creds_path}")
                     
                     client = texttospeech.TextToSpeechClient()
                     print("✅ Google TTS client created successfully")
@@ -960,11 +977,17 @@ class WebSocketVoiceHandler:
         for char in text:
             current += char
             if char in '.!?\n':
-                if current.strip():
+                # Only split if we have actual content, ignore repeated punctuation
+                if current.strip(char + " \n\t"):
                     sentences.append(current.strip())
                     current = ""
                 elif char == '\n':
                     continue
+                else:
+                    # It's just punctuation, append to previous sentence if possible
+                    if sentences:
+                        sentences[-1] += char
+                    current = ""
 
         if current.strip():
             sentences.append(current.strip())
@@ -1083,12 +1106,50 @@ class WebSocketVoiceHandler:
                 return
                 
             lang = session_data.get('lang', 'en-IN')
+            agent_config = get_agent(session_data['agent_id'])
+
+            # Get emotion snapshot if available
+            emotion_snapshot = None
+            if 'latest_emotion' in self.active_sessions[session_id]:
+                emotion_snapshot = self.active_sessions[session_id]['latest_emotion']
+            elif session_id in self.emotion_integrators:
+                emotion_snapshot = self.emotion_integrators[session_id].get_latest_emotions()
             
-            # Simple prompts to nudge the user
+            # If we have strong emotions, generate a context-aware nudge
+            if emotion_snapshot:
+                # Check if there is a dominant negative emotion
+                negatives = ['sad', 'angry', 'fearful', 'stressed', 'anxious', 'disgusted']
+                dominant = max(emotion_snapshot.items(), key=lambda x: x[1])[0] if emotion_snapshot else "neutral"
+                score = emotion_snapshot.get(dominant, 0)
+                
+                if dominant in negatives and score > 0.4:
+                    print(f"🎭 Generating emotion-aware nudge for {dominant} ({score:.2f})")
+                    
+                    # Use LLM to generate a gentle nudge based on visual observation
+                    memory_manager = self.memory_managers[session_id]
+                    conversation_history = memory_manager.get_context()
+                    
+                    # Create a special prompt for silence with emotion
+                    silence_prompt = f"(User is silent, but their face shows {dominant})"
+                    
+                    ai_reply = generate_reply(
+                        system_prompt=agent_config.build_prompt(lang, emotion_snapshot),
+                        user_text=silence_prompt,
+                        memory_turns=conversation_history,
+                        emotion_snapshot=emotion_snapshot
+                    )
+                    
+                    if ai_reply:
+                        # Update memory with this interaction
+                        memory_manager.add_turn("(Silence)", ai_reply)
+                        await self._generate_ai_response_and_stream(websocket, session_id, ai_reply)
+                        return
+
+            # Fallback to simple prompts if no strong emotion or neutral
             prompts = {
-                'en-IN': "Tell me, I'm listening...",
-                'hi-IN': "बताइए, मैं सुन रहा हूँ...",
-                'ta-IN': "சொல்லுங்கள், நான் கேட்கிறேன்..."
+                'en-IN': "Tell me, I'm listening",
+                'hi-IN': "बताइए, मैं सुन रहा हूँ",
+                'ta-IN': "சொல்லுங்கள், நான் கேட்கிறேன்"
             }
             
             prompt_text = prompts.get(lang, prompts['en-IN'])
