@@ -69,15 +69,11 @@ Mental Wellness AI is an end-to-end mental health technology platform that combi
 - **Google Cloud Account**: For Gemini AI, Text-to-Speech, and Speech-to-Text APIs
 - **Virtual Environment**: Python venv for dependency isolation
 
-### System Requirements
-- **RAM**: 8GB minimum (16GB recommended for AI processing)
-- **Storage**: 10GB free space
-- **Network**: Stable internet for Google Cloud API calls
 
 ### 1. Clone Repository & Initial Setup
 ```bash
 # Clone the project
-git clone https://github.com/Nehasasikumar/Mental_Wellness_AI.git
+git clone https://github.com/NISHAKAR06/Mental_Wellness_AI.git
 cd Mental_Wellness_AI
 
 # Create main environment structure
