@@ -240,7 +240,15 @@ def summarize_session(request):
                 return JsonResponse({'error': 'No available Gemini models found. Please check your API key and model availability.'}, status=500)
 
             prompt = f"""
-            Analyze the following therapy session notes and generate a summary in the following format:
+            You are summarizing a noisy speech-to-text transcript from a mental wellness session.
+            First, silently normalize the transcript into clear, natural English.
+            Correct obvious ASR errors, filler words, broken grammar, and code-switching when the intended meaning is clear.
+            If a word is uncertain, prefer the most likely meaning from context rather than repeating the garbled text.
+            This transcript may include English, Hindi, Tamil, or mixed-language speech, and you should still infer the user's meaning correctly.
+
+            Then generate a concise therapeutic summary in the format below.
+            Focus on the user's concerns, especially stress, academic pressure, placement pressure, anxiety, and workload if those themes appear.
+            Do not echo the raw transcript verbatim.
 
             **Main Themes:**
             - [Theme 1]

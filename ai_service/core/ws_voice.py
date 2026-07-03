@@ -30,6 +30,30 @@ if parent_dir not in sys.path:
 
 load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / '.env')
 
+SERVICE_ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_GOOGLE_CREDENTIALS = 'crafty-centaur-467514-r3-d220951b4070.json'
+
+
+def _resolve_google_credentials_path(raw_path: Optional[str]) -> Optional[Path]:
+    candidate_paths = []
+
+    if raw_path:
+        raw_candidate = Path(raw_path).expanduser()
+        candidate_paths.append(raw_candidate)
+
+        if not raw_candidate.is_absolute():
+            candidate_paths.append((Path.cwd() / raw_candidate).resolve())
+            candidate_paths.append((SERVICE_ROOT / raw_candidate).resolve())
+            candidate_paths.append((SERVICE_ROOT / raw_candidate.name).resolve())
+
+    candidate_paths.append((SERVICE_ROOT / DEFAULT_GOOGLE_CREDENTIALS).resolve())
+
+    for candidate_path in candidate_paths:
+        if candidate_path.exists():
+            return candidate_path
+
+    return None
+
 try:
     from core.agents import get_agent
     from core.llm import generate_reply
@@ -142,6 +166,40 @@ class WebSocketVoiceHandler:
                 'icall': '9152987821',
                 'kirann': '1800-599-0019'
             }
+        }
+
+        self.stt_phrase_hints = {
+            'en-IN': [
+                'academic stress',
+                'assignment',
+                'project',
+                'deadline',
+                'exam',
+                'class',
+                'presentation',
+                'exam pressure',
+                'feeling overwhelmed',
+                'I am feeling stressed',
+                'I need help',
+            ],
+            'hi-IN': [
+                'परीक्षा',
+                'असाइनमेंट',
+                'प्रोजेक्ट',
+                'डेडलाइन',
+                'कक्षा',
+                'तनाव',
+                'मुझे मदद चाहिए',
+            ],
+            'ta-IN': [
+                'தேர்வு',
+                'பாடப்பணி',
+                'திட்டம்',
+                'காலக்கெடு',
+                'வகுப்பு',
+                'மனஅழுத்தம்',
+                'எனக்கு உதவி வேண்டும்',
+            ],
         }
 
     async def handle_voice_session_accepted(self, websocket: WebSocket, session_id: str):
@@ -698,6 +756,15 @@ class WebSocketVoiceHandler:
             # STT config for specified language
             lang_config = self.lang_configs.get(language, self.lang_configs['en-IN'])
             stt_lang = lang_config['stt']
+            phrase_hints = self.stt_phrase_hints.get(stt_lang, self.stt_phrase_hints['en-IN'])
+
+            alternative_languages = []
+            if stt_lang == 'en-IN':
+                alternative_languages = ['hi-IN']
+            elif stt_lang == 'hi-IN':
+                alternative_languages = ['en-IN']
+            elif stt_lang == 'ta-IN':
+                alternative_languages = ['en-IN']
 
             config = speech.RecognitionConfig(
                 encoding=speech.RecognitionConfig.AudioEncoding.WEBM_OPUS,
@@ -708,9 +775,16 @@ class WebSocketVoiceHandler:
                 # Utterance-based recognition (non-streaming)
                 model="latest_long",
                 use_enhanced=True,
+                max_alternatives=5,
+                speech_contexts=[
+                    speech.SpeechContext(
+                        phrases=phrase_hints,
+                        boost=15.0,
+                    )
+                ],
                 adaptation=None,
-                # Handle multiple languages
-                alternative_language_codes=[] if language == 'en-IN' else ['en-IN'],
+                # Handle likely code-switching without widening the language search too much
+                alternative_language_codes=alternative_languages,
             )
 
             # Perform speech recognition with timeout
@@ -726,9 +800,23 @@ class WebSocketVoiceHandler:
                 print("⚠️ STT request timed out")
                 return f"Speech recognition timeout ({language})"
 
-            # Extract transcript from first result
+            # Extract the best transcript from all results instead of only the first one
             if response.results:
-                transcript = response.results[0].alternatives[0].transcript.strip()
+                segments: List[str] = []
+                for result in response.results:
+                    if not result.alternatives:
+                        continue
+
+                    best_alternative = max(
+                        result.alternatives,
+                        key=lambda alternative: getattr(alternative, 'confidence', 0.0) or 0.0,
+                    )
+
+                    segment_text = best_alternative.transcript.strip()
+                    if segment_text:
+                        segments.append(segment_text)
+
+                transcript = ' '.join(segments).strip()
                 if transcript:
                     print(f"✅ STT: '{transcript}' (language: {language})")
                     return transcript
@@ -809,14 +897,15 @@ class WebSocketVoiceHandler:
                 # Use Google TTS for production
                 try:
                     # Set up Google Cloud credentials from environment or local default
-                    creds_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-                    if not creds_path:
-                        creds_path = os.path.join(os.path.dirname(__file__), '..', 'crafty-centaur-467514-r3-d220951b4070.json')
-                    if os.path.exists(creds_path):
-                        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = creds_path
+                    creds_path = _resolve_google_credentials_path(os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))
+                    if creds_path:
+                        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = str(creds_path)
                         print(f"✅ Google Cloud credentials set: {creds_path}")
                     else:
-                        print(f"⚠️ Google Cloud credentials file not found: {creds_path}")
+                        print(
+                            "⚠️ Google Cloud credentials file not found. "
+                            f"Checked env path and default file: {SERVICE_ROOT / DEFAULT_GOOGLE_CREDENTIALS}"
+                        )
                     
                     client = texttospeech.TextToSpeechClient()
                     print("✅ Google TTS client created successfully")

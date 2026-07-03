@@ -32,6 +32,30 @@ const formatDuration = (seconds: number) => {
   return `${mins}:${secs}`;
 };
 
+const SESSION_SUMMARY_STORAGE_KEY = "mental_wellness_session_notes";
+
+const buildSessionNotes = (
+  transcripts: Array<{ role: "user" | "assistant"; text: string }>,
+) => {
+  const userSpeech = transcripts
+    .filter((entry) => entry.role === "user")
+    .map((entry) => entry.text.trim())
+    .filter(Boolean)
+    .join("\n");
+
+  if (userSpeech) {
+    return userSpeech;
+  }
+
+  return transcripts
+    .map(
+      (entry) =>
+        `${entry.role === "user" ? "User" : "Assistant"}: ${entry.text.trim()}`,
+    )
+    .filter((line) => line.trim())
+    .join("\n");
+};
+
 const VideoCall: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -42,7 +66,7 @@ const VideoCall: React.FC = () => {
   const [recording, setRecording] = useState<boolean>(false);
   const [audioPlaying, setAudioPlaying] = useState<boolean>(false);
   const [conversationActive, setConversationActive] = useState<boolean>(false);
-  const [, setTranscripts] = useState<
+  const [transcripts, setTranscripts] = useState<
     Array<{ role: "user" | "assistant"; text: string }>
   >([]);
   const [connectionStatus, setConnectionStatus] =
@@ -182,7 +206,9 @@ const VideoCall: React.FC = () => {
   // Ensure emotion analysis starts when both video and face detection are ready
   useEffect(() => {
     if (videoEnabled && faceDetectionReady) {
-      console.log("[EmotionAnalysis] useEffect: Both videoEnabled and faceDetectionReady are true. Starting emotion analysis.");
+      console.log(
+        "[EmotionAnalysis] useEffect: Both videoEnabled and faceDetectionReady are true. Starting emotion analysis.",
+      );
       startVideoAndAnalysis();
     }
   }, [videoEnabled, faceDetectionReady]);
@@ -270,7 +296,12 @@ const VideoCall: React.FC = () => {
   // Start video and emotion analysis with enhanced error handling
   const startVideoAndAnalysis = async () => {
     try {
-      console.log("[EmotionAnalysis] startVideoAndAnalysis called. videoEnabled:", videoEnabled, "faceDetectionReady:", faceDetectionReady);
+      console.log(
+        "[EmotionAnalysis] startVideoAndAnalysis called. videoEnabled:",
+        videoEnabled,
+        "faceDetectionReady:",
+        faceDetectionReady,
+      );
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { width: 640, height: 480 },
         audio: false, // Audio handled separately
@@ -290,10 +321,19 @@ const VideoCall: React.FC = () => {
 
       // Only start emotion analysis if face detection is ready
       if (faceDetectionReady) {
-        console.log("🎭 Starting emotion analysis with rendering player... (videoEnabled:", videoEnabled, ")");
+        console.log(
+          "🎭 Starting emotion analysis with rendering player... (videoEnabled:",
+          videoEnabled,
+          ")",
+        );
 
         const analyzeEmotion = async () => {
-          console.log("[EmotionAnalysis] analyzeEmotion loop running. videoEnabled:", videoEnabled, "faceDetectionReady:", faceDetectionReady);
+          console.log(
+            "[EmotionAnalysis] analyzeEmotion loop running. videoEnabled:",
+            videoEnabled,
+            "faceDetectionReady:",
+            faceDetectionReady,
+          );
           try {
             if (
               faceDetectionReady &&
@@ -305,7 +345,7 @@ const VideoCall: React.FC = () => {
               const detections = await faceapi
                 .detectAllFaces(
                   analysisVideoRef.current,
-                  new faceapi.TinyFaceDetectorOptions()
+                  new faceapi.TinyFaceDetectorOptions(),
                 )
                 .withFaceLandmarks()
                 .withFaceExpressions();
@@ -325,7 +365,10 @@ const VideoCall: React.FC = () => {
                 };
 
                 setEmotionData(emotionSnapshot);
-                console.log("[EmotionAnalysis] Emotion detected:", emotionSnapshot);
+                console.log(
+                  "[EmotionAnalysis] Emotion detected:",
+                  emotionSnapshot,
+                );
                 // Send to backend for analysis (with error handling)
                 await sendEmotionData(emotionSnapshot);
 
@@ -338,7 +381,7 @@ const VideoCall: React.FC = () => {
                     JSON.stringify({
                       type: "emotion_update",
                       data: emotionSnapshot,
-                    })
+                    }),
                   );
                   console.log("[EmotionAnalysis] Emotion sent via WebSocket.");
                 }
@@ -347,9 +390,14 @@ const VideoCall: React.FC = () => {
               }
             } else {
               // Detailed debug for which ref/state is not ready
-              console.log("[EmotionAnalysis] Skipping detection: refs or state not ready.");
+              console.log(
+                "[EmotionAnalysis] Skipping detection: refs or state not ready.",
+              );
               console.log("  faceDetectionReady:", faceDetectionReady);
-              console.log("  analysisVideoRef.current:", analysisVideoRef.current);
+              console.log(
+                "  analysisVideoRef.current:",
+                analysisVideoRef.current,
+              );
               if (analysisVideoRef.current) {
                 console.log("    paused:", analysisVideoRef.current.paused);
                 console.log("    ended:", analysisVideoRef.current.ended);
@@ -359,14 +407,16 @@ const VideoCall: React.FC = () => {
           } catch (emotionError) {
             console.warn(
               "⚠️ Emotion analysis error (non-critical):",
-              emotionError
+              emotionError,
             );
           } finally {
             // Schedule next analysis
             if (videoEnabled) {
               emotionIntervalRef.current = setTimeout(analyzeEmotion, 2000);
             } else {
-              console.log("[EmotionAnalysis] videoEnabled is false, stopping analysis loop.");
+              console.log(
+                "[EmotionAnalysis] videoEnabled is false, stopping analysis loop.",
+              );
             }
           }
         };
@@ -375,7 +425,11 @@ const VideoCall: React.FC = () => {
         analyzeEmotion();
       } else {
         console.log(
-          "⚠️ Face detection not available, skipping emotion analysis (videoEnabled:", videoEnabled, ", faceDetectionReady:", faceDetectionReady, ")"
+          "⚠️ Face detection not available, skipping emotion analysis (videoEnabled:",
+          videoEnabled,
+          ", faceDetectionReady:",
+          faceDetectionReady,
+          ")",
         );
       }
     } catch (error) {
@@ -496,7 +550,7 @@ const VideoCall: React.FC = () => {
           lang: selectedLanguage,
           // Optionally suggest an agent, FastAPI will choose default if not provided
           preferred_agent: psychologistId,
-        })
+        }),
       );
     };
 
@@ -664,13 +718,13 @@ const VideoCall: React.FC = () => {
           JSON.stringify({
             type: "audio_chunk",
             audio_data: base64Audio,
-          })
+          }),
         );
 
         wsRef.current.send(
           JSON.stringify({
             type: "user_utterance_end",
-          })
+          }),
         );
       }
     };
@@ -678,6 +732,20 @@ const VideoCall: React.FC = () => {
   };
 
   const handleEndCall = async () => {
+    const sessionNotes = buildSessionNotes(transcripts);
+
+    if (sessionNotes) {
+      sessionStorage.setItem(
+        SESSION_SUMMARY_STORAGE_KEY,
+        JSON.stringify({
+          sessionNotes,
+          sessionId: session?.session_id || null,
+          source: "video-call",
+          createdAt: new Date().toISOString(),
+        }),
+      );
+    }
+
     try {
       const apiBaseUrl =
         import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
@@ -700,7 +768,12 @@ const VideoCall: React.FC = () => {
 
     stopVideoStreams();
     stopEmotionAnalysis();
-    navigate("/dashboard/session-summarizer");
+    navigate("/dashboard/session-summarizer", {
+      state: {
+        sessionNotes,
+        sessionId: session?.session_id || null,
+      },
+    });
   };
 
   return (

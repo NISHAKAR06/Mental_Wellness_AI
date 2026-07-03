@@ -15,12 +15,36 @@ interface SessionResponse {
   };
 }
 
+const SESSION_SUMMARY_STORAGE_KEY = "mental_wellness_session_notes";
+
+const buildSessionNotes = (
+  transcripts: Array<{ role: "user" | "assistant"; text: string }>,
+) => {
+  const userSpeech = transcripts
+    .filter((entry) => entry.role === "user")
+    .map((entry) => entry.text.trim())
+    .filter(Boolean)
+    .join("\n");
+
+  if (userSpeech) {
+    return userSpeech;
+  }
+
+  return transcripts
+    .map(
+      (entry) =>
+        `${entry.role === "user" ? "User" : "Assistant"}: ${entry.text.trim()}`,
+    )
+    .filter((line) => line.trim())
+    .join("\n");
+};
+
 const VideoCallSimple: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
   const [selectedPsychologistId, setSelectedPsychologistId] = useState<string>(
-    searchParams.get("psychologist") || "eve_black_career"
+    searchParams.get("psychologist") || "eve_black_career",
   );
 
   const [session, setSession] = useState<SessionResponse | null>(null);
@@ -90,8 +114,9 @@ const VideoCallSimple: React.FC = () => {
 
   useEffect(() => {
     // Initialize AudioContext
-    audioContextRef.current = new (window.AudioContext ||
-      (window as any).webkitAudioContext)();
+    audioContextRef.current = new (
+      window.AudioContext || (window as any).webkitAudioContext
+    )();
 
     return () => {
       if (wsRef.current) {
@@ -147,9 +172,10 @@ const VideoCallSimple: React.FC = () => {
 
       // In a real app, we would fetch a token from the backend here
       // For now, we'll use the demo mode or a mock token
-      const fastApiUrl = import.meta.env.VITE_FASTAPI_URL || "http://localhost:8001";
+      const fastApiUrl =
+        import.meta.env.VITE_FASTAPI_URL || "http://localhost:8001";
       const wsBaseUrl = fastApiUrl.replace(/^http/, "ws");
-      
+
       const mockSession: SessionResponse = {
         session_id: sessionId,
         ws_url: `${wsBaseUrl}/ws/voice/${sessionId}`,
@@ -191,7 +217,7 @@ const VideoCallSimple: React.FC = () => {
           agent_id: selectedPsychologistId,
           lang: selectedLanguage,
           session_type: "video_call",
-        })
+        }),
       );
     };
 
@@ -349,7 +375,7 @@ const VideoCallSimple: React.FC = () => {
       }
 
       const audioBuffer = await audioContextRef.current.decodeAudioData(
-        bytes.buffer
+        bytes.buffer,
       );
 
       // Check if generation has changed during decoding
@@ -403,10 +429,10 @@ const VideoCallSimple: React.FC = () => {
 
     console.log(
       `🎵 Scheduling chunk at ${nextStartTimeRef.current.toFixed(
-        3
+        3,
       )} (current: ${currentTime.toFixed(3)}, dur: ${buffer.duration.toFixed(
-        3
-      )})`
+        3,
+      )})`,
     );
 
     source.start(nextStartTimeRef.current);
@@ -415,7 +441,7 @@ const VideoCallSimple: React.FC = () => {
     activeSourcesRef.current.push(source);
     source.onended = () => {
       activeSourcesRef.current = activeSourcesRef.current.filter(
-        (s) => s !== source
+        (s) => s !== source,
       );
     };
 
@@ -522,7 +548,7 @@ const VideoCallSimple: React.FC = () => {
               JSON.stringify({
                 type: "audio_chunk",
                 audio_data: base64Audio,
-              })
+              }),
             );
           };
           reader.readAsDataURL(event.data);
@@ -587,7 +613,7 @@ const VideoCallSimple: React.FC = () => {
         wsRef.current.send(
           JSON.stringify({
             type: "user_utterance_end",
-          })
+          }),
         );
       }
     }
@@ -629,6 +655,20 @@ const VideoCallSimple: React.FC = () => {
   };
 
   const handleEndCall = async () => {
+    const sessionNotes = buildSessionNotes(transcripts);
+
+    if (sessionNotes) {
+      sessionStorage.setItem(
+        SESSION_SUMMARY_STORAGE_KEY,
+        JSON.stringify({
+          sessionNotes,
+          sessionId: session?.session_id || null,
+          source: "video-call-simple",
+          createdAt: new Date().toISOString(),
+        }),
+      );
+    }
+
     // Stop all media tracks
     if (videoRef.current && videoRef.current.srcObject) {
       const stream = videoRef.current.srcObject as MediaStream;
@@ -643,7 +683,12 @@ const VideoCallSimple: React.FC = () => {
       wsRef.current.close();
     }
 
-    navigate("/dashboard/video-conferencing");
+    navigate("/dashboard/session-summarizer", {
+      state: {
+        sessionNotes,
+        sessionId: session?.session_id || null,
+      },
+    });
   };
 
   return (
